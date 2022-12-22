@@ -1,0 +1,21 @@
+[package]
+name = "rusty_cardano_wallet"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "rusty_cardano_wallet"
+crate-type = ["staticlib", "cdylib"]
+
+
+[dependencies]
+cardano-serialization-lib = "11.1.1"
+cbindgen = "0.24.3"
+libc = "0.2.138"
+tiny-bip39 = "1.0.0"
+
+[build-dependencies]
+cbindgen = "0.24.3"

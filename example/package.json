@@ -1,0 +1,25 @@
+{
+  "name": "RnCardanoWalletExample",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
+    "pods": "pod-install --quiet"
+  },
+  "dependencies": {
+    "assert": "^2.0.0",
+    "events": "^3.3.0",
+    "react": "18.1.0",
+    "react-native": "0.70.6",
+    "stream-browserify": "^3.0.0",
+    "ts-custom-error": "^3.3.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.9",
+    "@babel/runtime": "^7.12.5",
+    "babel-plugin-module-resolver": "^4.1.0",
+    "metro-react-native-babel-preset": "0.72.3"
+  }
+}
