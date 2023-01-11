@@ -94,6 +94,21 @@ bech32StakeVerificationKey:(NSString *)bech32StakeVerificationKey
     return result;
 }
 
+- (void)transactionBody:(NSString *)configJson
+             inputsJson:(NSString *)inputsJson
+             outputJson:(NSString *)outputJson
+    bech32ChangeAddress:(NSString *)bech32ChangeAddress
+                    ttl:(double)ttl
+                resolve:(RCTPromiseResolveBlock)resolve
+                 reject:(RCTPromiseRejectBlock)reject
+{
+    auto transactionBody = rncardanowallet::transactionBody([configJson UTF8String], [inputsJson UTF8String], [outputJson UTF8String], [bech32ChangeAddress UTF8String], ttl);
+    
+    NSString *result = [NSString stringWithCString:transactionBody.c_str() encoding:[NSString defaultCStringEncoding]];
+    
+    resolve(result);
+}
+
 // Don't compile this code when we build for the old architecture.
 #ifdef RCT_NEW_ARCH_ENABLED
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:

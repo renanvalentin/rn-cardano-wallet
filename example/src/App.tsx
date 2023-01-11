@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
 
+import { StyleSheet, View, Text, ScrollView, SafeAreaView } from 'react-native';
+
+import assert from 'assert';
 import {
-  StyleSheet,
-  View,
-  Text,
-  Button,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
-import {
+  PaymentVerificationKey,
   PrivateKey,
   PublicAccountKey,
-  PaymentVerificationKey,
   StakeVerificationKey,
+  TransactionBody,
+  TransactionBuilder,
+  TransactionHash,
+  TransactionInput,
+  TransactionOutput,
+  TransactionBuilderConfig,
+  TransactionUnspentOutput,
+  Address,
+  Value,
+  TransactionUnspentOutputs,
   PaymentAddress,
 } from 'rn-cardano-wallet';
-import assert from 'assert';
 
 enum Stages {
   GeneratingPrivateKey = 'Generating private key',
@@ -28,6 +32,8 @@ enum Stages {
   StakeVerificationKeyCreated = 'Stake Verification Key Created',
   GeneratingPaymentAddress = 'Generating Payment Address',
   PaymentAddressCreated = 'Payment Address Created',
+  BuildingTransaction = 'Building Transaction',
+  TransactionReady = 'Transaction Ready',
 }
 
 interface State {
@@ -36,6 +42,7 @@ interface State {
   paymentVerificationKey?: PaymentVerificationKey;
   stakeVerificationKey?: StakeVerificationKey;
   paymentAddress?: PaymentAddress;
+  transactionBody?: TransactionBody;
   stage: Stages;
 }
 
@@ -47,8 +54,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    const pause = (n: number = 0) =>
-      new Promise((resolve) => setTimeout(resolve, n));
+    const pause = (n = 0) => new Promise((resolve) => setTimeout(resolve, n));
 
     const op = async () => {
       await pause();
@@ -155,6 +161,72 @@ export default function App() {
         stage: Stages.PaymentAddressCreated,
         paymentAddress,
       }));
+
+      await pause();
+
+      setState((s) => ({
+        ...s,
+        stage: Stages.BuildingTransaction,
+      }));
+
+      const txConfig = TransactionBuilderConfig.create({
+        feeAlgo: {
+          coefficient: 44,
+          constant: 155381,
+        },
+        coinsPerUtxoByte: 34482,
+        poolDeposit: 500000000,
+        keyDeposit: 2000000,
+        maxValueSize: 4000,
+        maxTxSize: 8000,
+        preferPureChange: true,
+      });
+
+      const transactionUnspentOutput = TransactionUnspentOutput.create(
+        TransactionInput.create(
+          TransactionHash.create(
+            '488afed67b342d41ec08561258e210352fba2ac030c98a8199bc22ec7a27ccf1'
+          ),
+          0
+        ),
+        TransactionOutput.create(
+          Address.create(
+            'addr_test1qra2njhhucffhtfwq3zyvz3h9huqd87d83zay44h2a6nj0lt8erv04n4weca43v4jhdrpqsc5f5mh2zx0pa4k04v34eq32w05z'
+          ),
+          Value.create(20_000_000n)
+        )
+      );
+
+      const transactionUnspentOutputs = TransactionUnspentOutputs.create([
+        transactionUnspentOutput,
+      ]);
+
+      const txOuput = TransactionOutput.create(
+        Address.create(
+          'addr_test1qpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qum8x5w'
+        ),
+        Value.create(8_000_000n)
+      );
+
+      const changeAddress = Address.create(
+        'addr_test1gz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspqgpsqe70et'
+      );
+
+      const txBuild = await TransactionBuilder.build({
+        config: txConfig,
+        inputs: transactionUnspentOutputs,
+        output: txOuput,
+        changeAddress,
+        ttl: 1000,
+      });
+
+      await pause();
+
+      setState((s) => ({
+        ...s,
+        stage: Stages.TransactionReady,
+        transactionBody: txBuild,
+      }));
     };
 
     op();
@@ -163,39 +235,49 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <View>
-        <Text>{state.stage}</Text>
+        <ScrollView>
+          <Text>{state.stage}</Text>
 
-        {state.privateKey && (
-          <Text style={styles.text}>Private Key: {state.privateKey.value}</Text>
-        )}
+          {state.privateKey && (
+            <Text style={styles.text}>
+              Private Key: {state.privateKey.value}
+            </Text>
+          )}
 
-        {state.publicAccountKey && (
-          <Text style={styles.text}>
-            Public account key: {state.publicAccountKey.value}
-          </Text>
-        )}
+          {state.publicAccountKey && (
+            <Text style={styles.text}>
+              Public account key: {state.publicAccountKey.value}
+            </Text>
+          )}
 
-        {state.paymentVerificationKey && (
-          <Text style={styles.text}>
-            Payment verification key: {state.paymentVerificationKey.value}
-          </Text>
-        )}
+          {state.paymentVerificationKey && (
+            <Text style={styles.text}>
+              Payment verification key: {state.paymentVerificationKey.value}
+            </Text>
+          )}
 
-        {state.stakeVerificationKey && (
-          <Text style={styles.text}>
-            Stake verification key: {state.stakeVerificationKey.value}
-          </Text>
-        )}
+          {state.stakeVerificationKey && (
+            <Text style={styles.text}>
+              Stake verification key: {state.stakeVerificationKey.value}
+            </Text>
+          )}
 
-        {state.paymentAddress && (
-          <Text style={styles.text}>
-            Payment Address (m/1852'/1815'/0'/0/0): {state.paymentAddress.value}
-          </Text>
-        )}
+          {state.paymentAddress && (
+            <Text style={styles.text}>
+              Payment Address (m/1852'/1815'/0'/0/0):{' '}
+              {state.paymentAddress.value}
+            </Text>
+          )}
 
-        {/* <Text>Public Account Key: {publicAccountKey.value}</Text> */}
-        {/* <Button onPress={() => setFirst(!first)} title="toggle" /> */}
-        {/* <ScrollView>
+          {state.transactionBody && (
+            <Text style={styles.text}>
+              Transaction Body: {JSON.stringify(state.transactionBody.toJSON())}
+            </Text>
+          )}
+
+          {/* <Text>Public Account Key: {publicAccountKey.value}</Text> */}
+          {/* <Button onPress={() => setFirst(!first)} title="toggle" /> */}
+          {/* 
           {first &&
             Array.from({ length: 1 }).map((_, i) => {
               const pk = PrivateKey.create(
@@ -203,8 +285,8 @@ export default function App() {
                 ''
               );
               return <Text key={i + 1}>Key 2: {pk.value}</Text>;
-            })}
-        </ScrollView> */}
+            })}*/}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );

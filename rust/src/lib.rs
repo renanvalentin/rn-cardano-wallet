@@ -1,9 +1,10 @@
-use libc::{c_char, size_t, uint32_t};
+use libc::c_char;
 use std::ffi::{CStr, CString};
-use std::{io, ptr};
+use std::ptr;
 
 mod bip39;
 mod keygen;
+mod transactions;
 
 #[repr(C)]
 pub struct PrivateKey {
@@ -22,6 +23,11 @@ pub struct Bech32Address {
 
 #[repr(C)]
 pub struct PaymentAddress {
+    value: *mut c_char,
+}
+
+#[repr(C)]
+pub struct TransactionBody {
     value: *mut c_char,
 }
 
@@ -246,6 +252,82 @@ pub unsafe extern "C" fn payment_address_free(payment_address_ptr: *mut PaymentA
     drop(Box::from_raw(payment_address_ptr))
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn transaction_body_create(
+    c_config_json: *const c_char,
+    c_inputs_json: *const c_char,
+    c_output_json: *const c_char,
+    c_bech32_change_address: *const c_char,
+    ttl: u64,
+) -> *mut TransactionBody {
+    let config_json = match c_char_to_str(c_config_json) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let inputs_json = match c_char_to_str(c_inputs_json) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let output_json = match c_char_to_str(c_output_json) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let bech32_change_address = match c_char_to_str(c_bech32_change_address) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let transaction_body = match transactions::create_transaction_body(
+        &config_json,
+        &inputs_json,
+        &output_json,
+        &bech32_change_address,
+        ttl,
+    ) {
+        Ok(t) => t,
+        Err(err) => {
+            println!("transaction_body err {}", err);
+            return ptr::null_mut();
+        }
+    };
+
+    let json = match transaction_body.to_json() {
+        Ok(json) => json,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let json_str = match CString::new(json) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let transaction_body = TransactionBody {
+        value: json_str.into_raw(),
+    };
+
+    Box::into_raw(Box::new(transaction_body))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn transaction_body_free(transaction_body_ptr: *mut TransactionBody) {
+    if transaction_body_ptr.is_null() {
+        return;
+    }
+
+    let transaction_body = &*transaction_body_ptr;
+
+    if !transaction_body.value.is_null() {
+        drop(CString::from_raw(transaction_body.value));
+    }
+
+    println!("rust:transaction_body_free");
+
+    drop(Box::from_raw(transaction_body_ptr))
+}
+
 enum ErrorType {
     NullPtr,
     InvalidData,
@@ -266,12 +348,4 @@ fn c_char_to_str(c_char: *const c_char) -> Result<String, ErrorType> {
     };
 
     Ok(url_as_str.to_string())
-}
-
-unsafe fn validate_raw_ptr<T>(raw: &*const T) -> Result<(), ErrorType> {
-    if raw.is_null() {
-        return Err(ErrorType::NullPtr);
-    }
-
-    Ok(())
 }

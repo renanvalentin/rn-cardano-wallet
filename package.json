@@ -80,7 +80,8 @@
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
-    "ts-custom-error": "3.3.1"
+    "ts-custom-error": "3.3.1",
+    "@emurgo/cardano-serialization-lib-nodejs": "11.2.1"
   },
   "engines": {
     "node": ">= 16.0.0"

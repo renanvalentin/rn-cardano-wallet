@@ -15,6 +15,9 @@ crate-type = ["staticlib", "cdylib"]
 cardano-serialization-lib = "11.1.1"
 cbindgen = "0.24.3"
 libc = "0.2.138"
+serde = "1.0.152"
+serde-aux = "4.1.2"
+serde_json = "1.0.91"
 tiny-bip39 = "1.0.0"
 
 [build-dependencies]

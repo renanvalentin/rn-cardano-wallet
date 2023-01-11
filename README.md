@@ -10,6 +10,8 @@ npm install rn-cardano-wallet
 
 ## Usage
 
+### Key Generation
+
 ```js
 import {
   PrivateKey,
@@ -40,6 +42,88 @@ const paymentAddress = await PaymentAddress.create(
   paymentVerificationKey,
   stakeVerificationKey
 );
+
+paymentAddress.value; // addr_test1qpmulz4p20fp0dezmh5s4k9duudu45upun53c287w9s8f78trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qzfct4l
+```
+
+### Transactions
+
+```js
+const txConfig = TransactionBuilderConfig.create({
+  feeAlgo: {
+    coefficient: 44,
+    constant: 155381,
+  },
+  coinsPerUtxoByte: 34482,
+  poolDeposit: 500000000,
+  keyDeposit: 2000000,
+  maxValueSize: 4000,
+  maxTxSize: 8000,
+  preferPureChange: true,
+});
+
+const transactionUnspentOutput = TransactionUnspentOutput.create(
+  TransactionInput.create(
+    TransactionHash.create(
+      '488afed67b342d41ec08561258e210352fba2ac030c98a8199bc22ec7a27ccf1'
+    ),
+    0
+  ),
+  TransactionOutput.create(
+    Address.create(
+      'addr_test1qra2njhhucffhtfwq3zyvz3h9huqd87d83zay44h2a6nj0lt8erv04n4weca43v4jhdrpqsc5f5mh2zx0pa4k04v34eq32w05z'
+    ),
+    Value.create(20_000_000n)
+  )
+);
+
+const transactionUnspentOutputs = TransactionUnspentOutputs.create([
+  transactionUnspentOutput,
+]);
+
+const txOuput = TransactionOutput.create(
+  Address.create(
+    'addr_test1qpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qum8x5w'
+  ),
+  Value.create(8_000_000n)
+);
+
+const changeAddress = Address.create(
+  'addr_test1gz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspqgpsqe70et'
+);
+
+const transactionBody = await TransactionBuilder.build({
+  config: txConfig,
+  inputs: transactionUnspentOutputs,
+  output: txOuput,
+  changeAddress,
+  ttl: 1000,
+});
+
+transactionBody.toJSON();
+/**
+{
+  "inputs": [
+    {
+      "transaction_id": "488afed67b342d41ec08561258e210352fba2ac030c98a8199bc22ec7a27ccf1",
+      "index": 0
+    }
+  ],
+  "outputs": [
+    {
+      "address": "addr_test1qpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qum8x5w",
+      "amount": {
+        "coin": "8000000",
+        "multiasset": null
+      },
+      "plutus_data": null,
+      "script_ref": null
+    },
+    ...
+  ],
+  ...
+}
+**/
 ```
 
 ## IOS

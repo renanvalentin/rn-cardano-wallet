@@ -20,6 +20,10 @@ struct PaymentAddress {
   char *value;
 };
 
+struct TransactionBody {
+  char *value;
+};
+
 extern "C" {
 
 PrivateKey *private_key_create(const char *c_entropy, const char *c_password);
@@ -43,5 +47,13 @@ PaymentAddress *payment_address_create(uint8_t network,
                                        const char *c_bip32_stake_verification_key);
 
 void payment_address_free(PaymentAddress *payment_address_ptr);
+
+TransactionBody *transaction_body_create(const char *c_config_json,
+                                         const char *c_inputs_json,
+                                         const char *c_output_json,
+                                         const char *c_bech32_change_address,
+                                         uint64_t ttl);
+
+void transaction_body_free(TransactionBody *transaction_body_ptr);
 
 } // extern "C"

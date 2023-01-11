@@ -15,6 +15,13 @@ export interface Spec extends TurboModule {
     bech32PaymentVerificationKey: string,
     bech32StakeVerificationKey: string
   ): Promise<string>;
+  transactionBody(
+    configJson: string,
+    inputsJson: string,
+    outputJson: string,
+    bech32ChangeAddress: string,
+    ttl: number
+  ): Promise<string>;
 }
 
 export default TurboModuleRegistry.getEnforcing<Spec>('RnCardanoWallet');
