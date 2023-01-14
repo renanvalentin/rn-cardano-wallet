@@ -7,9 +7,9 @@
 class TransactionBodyData
 {
 public:
-    TransactionBodyData(const std::string configJson, const std::string inputsJson, const std::string outputJson, const std::string bech32ChangeAddress, u_int64_t ttl);
+    TransactionBodyData(const char *configJson, const char *inputsJson, const char *outputJson, const char *bech32ChangeAddress, u_int64_t ttl);
     ~TransactionBodyData();
-    std::string getValue();
+    const char *getValue();
 
 private:
     TransactionBody *raw;

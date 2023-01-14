@@ -3,9 +3,9 @@
 
 using namespace std;
 
-PublicAccountKeyData::PublicAccountKeyData(const std::string bip32PrivateKey)
+PublicAccountKeyData::PublicAccountKeyData(const uint8_t *bytes, size_t len)
 {
-    raw = public_account_key_create(bip32PrivateKey.c_str());
+    raw = public_account_key_create(bytes, len);
     if (raw == nullptr)
     {
         throw "Invalid Private Key";
@@ -18,7 +18,7 @@ PublicAccountKeyData::~PublicAccountKeyData()
     public_account_key_free(raw);
 }
 
-std::string PublicAccountKeyData::getValue()
+const char *PublicAccountKeyData::getValue()
 {
     return raw->value;
 }

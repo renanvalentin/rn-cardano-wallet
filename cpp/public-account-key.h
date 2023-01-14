@@ -7,9 +7,9 @@
 class PublicAccountKeyData
 {
 public:
-    PublicAccountKeyData(const std::string);
+    PublicAccountKeyData(const uint8_t *bytes, size_t len);
     ~PublicAccountKeyData();
-    std::string getValue();
+    const char *getValue();
 
 private:
     PublicAccountKey *raw;

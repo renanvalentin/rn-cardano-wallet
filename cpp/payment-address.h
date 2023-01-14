@@ -7,9 +7,9 @@
 class PaymentAddressData
 {
 public:
-    PaymentAddressData(uint8_t network, const std::string bech32PaymentVerificationKey, const std::string bech32StakeVerificationKey);
+    PaymentAddressData(uint8_t network, const char *bech32PaymentVerificationKey, const char *bech32StakeVerificationKey);
     ~PaymentAddressData();
-    std::string getValue();
+    const char *getValue();
 
 private:
     PaymentAddress *raw;

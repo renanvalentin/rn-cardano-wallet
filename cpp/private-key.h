@@ -7,9 +7,9 @@
 class PrivateKeyData
 {
 public:
-    PrivateKeyData(const std::string, const std::string);
+    PrivateKeyData(const char *entropy, const char *password);
     ~PrivateKeyData();
-    std::string getValue();
+    char *getValue();
 
 private:
     PrivateKey *raw;

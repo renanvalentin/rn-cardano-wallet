@@ -3,9 +3,9 @@
 
 using namespace std;
 
-PaymentAddressData::PaymentAddressData(uint8_t network, const std::string bech32PaymentVerificationKey, const std::string bech32StakeVerificationKey)
+PaymentAddressData::PaymentAddressData(uint8_t network, const char *bech32PaymentVerificationKey, const char *bech32StakeVerificationKey)
 {
-    raw = payment_address_create(network, bech32PaymentVerificationKey.c_str(), bech32StakeVerificationKey.c_str());
+    raw = payment_address_create(network, bech32PaymentVerificationKey, bech32StakeVerificationKey);
     if (raw == nullptr)
     {
         throw "Invalid Params";
@@ -18,7 +18,7 @@ PaymentAddressData::~PaymentAddressData()
     payment_address_free(raw);
 }
 
-std::string PaymentAddressData::getValue()
+const char *PaymentAddressData::getValue()
 {
     return raw->value;
 }

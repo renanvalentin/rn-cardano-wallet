@@ -7,9 +7,9 @@
 class Bech32AddressData
 {
 public:
-    Bech32AddressData(const std::string bech32PublicAccountKey, u_int32_t changeIndex, uint32_t index);
+    Bech32AddressData(const char *bech32PublicAccountKey, u_int32_t changeIndex, uint32_t index);
     ~Bech32AddressData();
-    std::string getValue();
+    const char *getValue();
 
 private:
     Bech32Address *raw;
