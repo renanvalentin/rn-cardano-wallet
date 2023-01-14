@@ -12,6 +12,10 @@ struct PublicAccountKey {
   char *value;
 };
 
+struct MnemonicValidation {
+  bool value;
+};
+
 struct Bech32Address {
   char *value;
 };
@@ -30,11 +34,13 @@ PrivateKey *private_key_create(const char *c_entropy, const char *c_password);
 
 void private_key_free(PrivateKey *private_key_ptr);
 
-PublicAccountKey *public_account_key_create(const char *c_bip32_private_key);
+PublicAccountKey *public_account_key_create(const uint8_t *c_bip32_private_key_bytes, size_t len);
 
 void public_account_key_free(PublicAccountKey *public_account_key_ptr);
 
-bool mnemonic_is_valid(const char *c_mnemonic);
+MnemonicValidation *mnemonic_validation_create(const char *c_mnemonic);
+
+void mnemonic_validation_free(MnemonicValidation *mnemonic_validation_ptr);
 
 Bech32Address *bech32_address_create(const char *c_bech32_public_key,
                                      uint32_t change_index,

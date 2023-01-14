@@ -113,7 +113,7 @@
     return getquery;
 }
 
-+ (NSData *)decrypt:(NSData *)tag cipherText:(NSData *)cipherText withError:(NSError **)errorPtr;
++ (NSMutableData *)decrypt:(NSData *)tag cipherText:(NSData *)cipherText withError:(NSError **)errorPtr;
 {
     NSDictionary *getPrivateKeyQuery = [KeyAgent createPrivateKeyQuery:tag];
     
@@ -131,10 +131,10 @@
                                                  kSecKeyOperationTypeDecrypt,
                                                  algorithm);
     
-    NSData* clearText = nil;
+    NSMutableData* clearText = nil;
     if (canDecrypt) {
         CFErrorRef error = NULL;
-        clearText = (NSData*)CFBridgingRelease(       // ARC takes ownership
+        clearText = (NSMutableData*)CFBridgingRelease(       // ARC takes ownership
                                                SecKeyCreateDecryptedData(privateKey,
                                                                          algorithm,
                                                                          (__bridge CFDataRef)cipherText,

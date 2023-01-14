@@ -18,7 +18,7 @@
 @property (nonatomic, readonly) SecKeyRef publicKey;
 
 + (KeyAgent *)createKeyAgent:(NSData *)tag withError:(NSError **)errorPtr;
-+ (NSData *)decrypt:(NSData *)tag cipherText:(NSData *)cipherText withError:(NSError **)errorPtr;
++ (NSMutableData *)decrypt:(NSData *)tag cipherText:(NSData *)cipherText withError:(NSError **)errorPtr;
 
 - (instancetype)initWithPublicKey:(SecKeyRef)publicKey;
 - (NSData *) encrypt:(NSData *)plainText;

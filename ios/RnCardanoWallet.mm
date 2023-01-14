@@ -1,6 +1,12 @@
 #import "RnCardanoWallet.h"
 #import "KeyAgent.h"
 #import "UUID.h"
+#import "private-key.h"
+#import "public-account-key.h"
+#import "bech32-address.h"
+#import "payment-address.h"
+#import "mnemonic-validation.h"
+#import "transaction-body.h"
 
 @implementation RnCardanoWallet
 RCT_EXPORT_MODULE()
@@ -18,19 +24,21 @@ RCT_EXPORT_MODULE()
         NSString *errorMessage = [error localizedDescription];
         return reject(errorCode, errorMessage, nil);
     }
+        
+    const char *entropyCString = [entropy UTF8String];
+    const char *passwordCString = [password UTF8String];
     
-    auto pk = rncardanowallet::privateKey([entropy UTF8String], [password UTF8String]);
-    
-    NSString *privateKeyFromCString = [NSString stringWithCString:pk.c_str() encoding:[NSString defaultCStringEncoding]];
+    PrivateKeyData privateKey(entropyCString, passwordCString);
+    const char *privateKeyCString =privateKey.getValue();
+
+    NSString *privateKeyFromCString = [NSString stringWithCString:privateKeyCString encoding:[NSString defaultCStringEncoding]];
     
     NSData *plainText = [privateKeyFromCString dataUsingEncoding:NSUTF8StringEncoding];
-    
+
     NSData *cipherText = [keyAgent encrypt:plainText];
-    
+
     NSString *result = [cipherText base64EncodedStringWithOptions:0];
-    
-    NSLog(@"encrypted string %@",result);
-    
+
     resolve([NSString stringWithFormat:@"%@:%@", uuid, result]);
 }
 
@@ -46,28 +54,35 @@ RCT_EXPORT_MODULE()
     
     NSError *error;
     
-    NSData *clearBip32PrivateKey = [KeyAgent decrypt:tag cipherText:data withError:&error];
-    
+    NSMutableData *clearBip32PrivateKey = [KeyAgent decrypt:tag cipherText:data withError:&error];
+        
     if(error){
         NSString *errorCode = [@(error.code) stringValue];
         NSString *errorMessage = [error localizedDescription];
         return reject(errorCode, errorMessage, nil);
     }
     
-    NSString *bip32PrivateKey = [[NSString alloc] initWithData:clearBip32PrivateKey encoding:NSUTF8StringEncoding];
-    
-    auto publicAccountKey = rncardanowallet::publicAccountKey([bip32PrivateKey UTF8String]);
-    
-    NSString *result = [NSString stringWithCString:publicAccountKey.c_str() encoding:[NSString defaultCStringEncoding]];
-    
+    const uint8_t *clearBip32PrivateKeyBytes = (uint8_t *)[clearBip32PrivateKey bytes];
+        
+    PublicAccountKeyData publicAccountKey(clearBip32PrivateKeyBytes, clearBip32PrivateKey.length);
+    const char *publicAccountKeyCString = publicAccountKey.getValue();
+
+    [clearBip32PrivateKey resetBytesInRange:NSMakeRange(0, [clearBip32PrivateKey length])];
+
+    NSString *result = [NSString stringWithCString:publicAccountKeyCString encoding:[NSString defaultCStringEncoding]];
+
     resolve(result);
 }
 
 - (void)bech32Address:(NSString *)bech32PublicAccountKey changeIndex:(double)changeIndex index:(double)index resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
-    auto bech32Address = rncardanowallet::bech32Address([bech32PublicAccountKey UTF8String], changeIndex, index);
+    const char *bech32PublicAccountKeyCString =[bech32PublicAccountKey UTF8String];
     
-    NSString *result = [NSString stringWithCString:bech32Address.c_str() encoding:[NSString defaultCStringEncoding]];
+    Bech32AddressData bech32Address(bech32PublicAccountKeyCString, changeIndex, index);
+    const char *bech32AddressCString = bech32Address.getValue();
+    
+    
+    NSString *result = [NSString stringWithCString:bech32AddressCString encoding:[NSString defaultCStringEncoding]];
     
     resolve(result);
 }
@@ -78,20 +93,28 @@ bech32StakeVerificationKey:(NSString *)bech32StakeVerificationKey
                resolve:(RCTPromiseResolveBlock)resolve
                 reject:(RCTPromiseRejectBlock)reject
 {
-    auto paymentAddress = rncardanowallet::paymentAddress(network, [bech32PaymentVerificationKey UTF8String], [bech32StakeVerificationKey UTF8String]);
+    const char *bech32PaymentVerificationKeyCString = [bech32PaymentVerificationKey UTF8String];
+    const char *bech32StakeVerificationKeyCString = [bech32StakeVerificationKey UTF8String];
     
-    NSString *result = [NSString stringWithCString:paymentAddress.c_str() encoding:[NSString defaultCStringEncoding]];
+    PaymentAddressData paymentAddress(network, bech32PaymentVerificationKeyCString, bech32StakeVerificationKeyCString);
+    const char *paymentAddressCString = paymentAddress.getValue();
+    
+    
+    NSString *result = [NSString stringWithCString:paymentAddressCString encoding:[NSString defaultCStringEncoding]];
     
     resolve(result);
 }
 
-- (NSNumber *)validateMnemonic:(NSString *)mnemonic
+- (void)validateMnemonic:(NSString *)mnemonic resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
-    auto isValid = rncardanowallet::validateMnemonic([mnemonic UTF8String]);
+    const char *mnemonicCString = [mnemonic UTF8String];
     
-    NSNumber *result = [NSNumber numberWithBool:(isValid)];
+    MnemonicValidationData mnemonicValidation(mnemonicCString);
+    BOOL isValid = mnemonicValidation.getValue();
     
-    return result;
+    NSNumber *result = [NSNumber numberWithBool:isValid];
+    
+    resolve(result);
 }
 
 - (void)transactionBody:(NSString *)configJson
@@ -102,9 +125,16 @@ bech32StakeVerificationKey:(NSString *)bech32StakeVerificationKey
                 resolve:(RCTPromiseResolveBlock)resolve
                  reject:(RCTPromiseRejectBlock)reject
 {
-    auto transactionBody = rncardanowallet::transactionBody([configJson UTF8String], [inputsJson UTF8String], [outputJson UTF8String], [bech32ChangeAddress UTF8String], ttl);
+    const char *configJsonCString = [configJson UTF8String];
+    const char *inputsJsonCString = [inputsJson UTF8String];
+    const char *outputJsonCString = [outputJson UTF8String];
+    const char *bech32ChangeAddressCString = [bech32ChangeAddress UTF8String];
     
-    NSString *result = [NSString stringWithCString:transactionBody.c_str() encoding:[NSString defaultCStringEncoding]];
+    TransactionBodyData transactionBody(configJsonCString, inputsJsonCString, outputJsonCString, bech32ChangeAddressCString, ttl);
+    const char *transactionBodyCString = transactionBody.getValue();
+    
+    
+    NSString *result = [NSString stringWithCString:transactionBodyCString encoding:[NSString defaultCStringEncoding]];
     
     resolve(result);
 }

@@ -1,5 +1,10 @@
+use std::str::FromStr;
+
 use bip39::{Language, Mnemonic};
 
 pub fn validate(mnemonic: &str) -> bool {
-    Mnemonic::validate(&mnemonic, Language::English).is_ok()
+    match Mnemonic::from_str(&mnemonic) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
 }

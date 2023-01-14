@@ -1,4 +1,6 @@
-use bip39::{Language, Mnemonic};
+use std::str::FromStr;
+
+use bip39::Mnemonic;
 use cardano_serialization_lib::{
     address::{BaseAddress, StakeCredential},
     crypto::{Bip32PrivateKey, Bip32PublicKey},
@@ -50,14 +52,19 @@ impl Bech32Address {
     }
 }
 
-pub fn create_private_key(entropy: String, password: String) -> Bech32PrivateKey {
-    let mnemonic = Mnemonic::from_phrase(&entropy, Language::English).unwrap();
-    let e = mnemonic.entropy();
+pub fn create_private_key(entropy: &str, password: &str) -> Result<Bech32PrivateKey, String> {
+    let mnemonic = match Mnemonic::from_str(&entropy) {
+        Ok(m) => m,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    let e = mnemonic.to_entropy();
 
     let bech32_private_key =
-        Bip32PrivateKey::from_bip39_entropy(e, password.as_bytes()).to_bech32();
+        Bip32PrivateKey::from_bip39_entropy(&e, password.as_bytes()).to_bech32();
 
-    Bech32PrivateKey::new(bech32_private_key)
+    Ok(Bech32PrivateKey::new(bech32_private_key))
+    // Ok(Bech32PrivateKey::new(String::from("test")))
 }
 
 pub fn create_bip32_private_key_from_bech32(

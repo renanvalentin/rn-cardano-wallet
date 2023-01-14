@@ -1,6 +1,7 @@
-use libc::c_char;
+use libc::{c_char, size_t};
 use std::ffi::{CStr, CString};
-use std::ptr;
+use std::str;
+use std::{ptr, slice};
 
 mod bip39;
 mod keygen;
@@ -17,6 +18,11 @@ pub struct PublicAccountKey {
 }
 
 #[repr(C)]
+pub struct MnemonicValidation {
+    value: bool,
+}
+
+#[repr(C)]
 pub struct Bech32Address {
     value: *mut c_char,
 }
@@ -28,6 +34,11 @@ pub struct PaymentAddress {
 
 #[repr(C)]
 pub struct TransactionBody {
+    value: *mut c_char,
+}
+
+#[repr(C)]
+pub struct Transaction {
     value: *mut c_char,
 }
 
@@ -46,7 +57,10 @@ pub unsafe extern "C" fn private_key_create(
         Err(_) => return ptr::null_mut(),
     };
 
-    let bech32_private_key = keygen::create_private_key(entropy, password);
+    let bech32_private_key = match keygen::create_private_key(&entropy, &password) {
+        Ok(pk) => pk,
+        Err(_) => return ptr::null_mut(),
+    };
 
     let private_key_str = match CString::new(bech32_private_key.value()) {
         Ok(s) => s,
@@ -69,6 +83,7 @@ pub unsafe extern "C" fn private_key_free(private_key_ptr: *mut PrivateKey) {
     let private_key = &*private_key_ptr;
 
     if !private_key.value.is_null() {
+        println!("rust:private_key_free:value");
         drop(CString::from_raw(private_key.value));
     }
 
@@ -79,9 +94,12 @@ pub unsafe extern "C" fn private_key_free(private_key_ptr: *mut PrivateKey) {
 
 #[no_mangle]
 pub unsafe extern "C" fn public_account_key_create(
-    c_bip32_private_key: *const c_char,
+    c_bip32_private_key_bytes: *const u8,
+    len: size_t,
 ) -> *mut PublicAccountKey {
-    let bip32_private_key_str = match c_char_to_str(c_bip32_private_key) {
+    let byte_slice = slice::from_raw_parts(c_bip32_private_key_bytes, len as usize);
+
+    let bip32_private_key_str = match byte_slice_as_utf8(byte_slice) {
         Ok(s) => s,
         Err(_) => return ptr::null_mut(),
     };
@@ -124,13 +142,32 @@ pub unsafe extern "C" fn public_account_key_free(public_account_key_ptr: *mut Pu
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn mnemonic_is_valid(c_mnemonic: *const c_char) -> bool {
+pub unsafe extern "C" fn mnemonic_validation_create(
+    c_mnemonic: *const c_char,
+) -> *mut MnemonicValidation {
     let mnemonic_str = match c_char_to_str(c_mnemonic) {
         Ok(s) => s,
-        Err(_) => return false,
+        Err(_) => return ptr::null_mut(),
     };
 
-    bip39::validate(&mnemonic_str)
+    let result = bip39::validate(&mnemonic_str);
+
+    let mnemonic_validation = MnemonicValidation { value: result };
+
+    Box::into_raw(Box::new(mnemonic_validation))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mnemonic_validation_free(
+    mnemonic_validation_ptr: *mut MnemonicValidation,
+) {
+    if mnemonic_validation_ptr.is_null() {
+        return;
+    }
+
+    println!("rust:mnemonic_validation_free");
+
+    drop(Box::from_raw(mnemonic_validation_ptr))
 }
 
 #[no_mangle]
@@ -328,9 +365,72 @@ pub unsafe extern "C" fn transaction_body_free(transaction_body_ptr: *mut Transa
     drop(Box::from_raw(transaction_body_ptr))
 }
 
+// #[no_mangle]
+// pub unsafe extern "C" fn transaction_create(
+//     c_bip32_private_key: *const c_char,
+//     c_payment_signing_key_paths_json: *const c_char,
+//     c_transaction_body_json: *const c_char,
+// ) -> *mut TransactionBody {
+//     let bip32_private_key_str = match c_char_to_str(c_bip32_private_key) {
+//         Ok(s) => s,
+//         Err(_) => return ptr::null_mut(),
+//     };
+
+//     let payment_signing_key_paths_json = match c_char_to_str(c_payment_signing_key_paths_json) {
+//         Ok(s) => s,
+//         Err(_) => return ptr::null_mut(),
+//     };
+
+//     let transaction_body_json = match c_char_to_str(c_transaction_body_json) {
+//         Ok(s) => s,
+//         Err(_) => return ptr::null_mut(),
+//     };
+
+//     let bip32_private_key =
+//         match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str) {
+//             Ok(pk) => pk,
+//             Err(_) => return ptr::null_mut(),
+//         };
+
+//     let transaction_body = match transactions::create_transaction(
+//         &bip32_private_key,
+//         &payment_signing_key_paths_json,
+//         &transaction_body_json,
+//     ) {
+//         Ok(t) => t,
+//         Err(err) => {
+//             println!("transaction_body err {}", err);
+//             return ptr::null_mut();
+//         }
+//     };
+
+//     let json = match transaction_body.to_json() {
+//         Ok(json) => json,
+//         Err(_) => return ptr::null_mut(),
+//     };
+
+//     let json_str = match CString::new(json) {
+//         Ok(s) => s,
+//         Err(_) => return ptr::null_mut(),
+//     };
+
+//     let transaction_body = TransactionBody {
+//         value: json_str.into_raw(),
+//     };
+
+//     Box::into_raw(Box::new(transaction_body))
+// }
+
 enum ErrorType {
     NullPtr,
     InvalidData,
+}
+
+fn byte_slice_as_utf8(bytes: &[u8]) -> Result<&str, String> {
+    match str::from_utf8(bytes) {
+        Ok(s) => Ok(s),
+        Err(err) => Err(format!("invalid UTF-8 data: {}", err)),
+    }
 }
 
 fn c_char_to_str(c_char: *const c_char) -> Result<String, ErrorType> {
