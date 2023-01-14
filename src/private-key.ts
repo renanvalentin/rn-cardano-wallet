@@ -7,7 +7,7 @@ export class PrivateKey {
   private constructor(readonly value: Bech32) {}
 
   public static async create(mnemonic: string, password: string) {
-    if (!Mnemonic.validate(mnemonic)) {
+    if (!(await Mnemonic.validate(mnemonic))) {
       throw new ValidationError('Invalid mnemonic');
     }
 

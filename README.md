@@ -126,26 +126,39 @@ transactionBody.toJSON();
 **/
 ```
 
+### Transaction Signing
+
+Use `PaymentSigningKeyPath` for each unique `TransactionUnspentOutput` addresses.
+
+```js
+const paymentSigningKeyPath = PaymentSigningKeyPath.create({
+  accountIndex: 0,
+  changeIndex: 0,
+  index: 3,
+});
+
+const paymentSigningKeyPaths = PaymentSigningKeyPaths.create([
+  paymentSigningKeyPath,
+]);
+
+const transaction = await Transaction.create(
+  privateKey,
+  paymentSigningKeyPaths,
+  transactionBody
+);
+**/
+```
+
 ## IOS
 
 ### Private Key & Secure Enclave
 
-This lib follows the same strategy used by VivoPay. See [article](https://medium.com/coinmonks/how-we-created-an-insanely-secure-crypto-wallet-617917063a06#:~:text=The%20Secure%20Enclave%20is%20a,cannot%20leave%20the%20Secure%20Enclave.)
+The private key is encrypted and stored using the [Secure Enclave](https://developer.apple.com/documentation/security/certificate_key_and_trust_services/keys/protecting_keys_with_the_secure_enclave?language=objc) and loaded into memory using `NSMutableData` so the buffer can be zero out after usage.
 
-> This is how VivoPay uses the Secure Enclave. When a user launches
-> VivoPay for the first time, the following things happen in this order:
->
-> 1.  VivoPay will create a wallet with a Harmony One private key in memory (this is done without use of the Secure Enclave).
-> 2.  The Secure Enclave then creates a unique private key to encrypt the wallet.
-> 3.  The encrypted wallet is saved on disk.
-> 4.  The wallet is deleted from memory.
->
-> When a user creates a new transaction that needs to be signed, the
-> following things happen in this order:
->
-> 1.  The encrypted wallet is loaded from disk and decrypted by the Secure Enclave.
-> 2.  The transaction is signed by the wallet.
-> 3.  The wallet is deleted from memory.
+It will only be required for:
+
+- Creating new public key accounts (m/1852'/1815'/0');
+- Signing transactions;
 
 ## Contributing
 

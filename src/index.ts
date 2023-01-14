@@ -17,3 +17,8 @@ export { Address } from './address';
 export { Value } from './value';
 export { TransactionUnspentOutputs } from './transaction-unspent-outputs';
 export { PaymentAddress } from './payment-address';
+export { Transaction } from './transaction';
+export {
+  PaymentSigningKeyPath,
+  PaymentSigningKeyPaths,
+} from './payment-signing-key-path';

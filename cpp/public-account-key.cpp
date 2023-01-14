@@ -3,9 +3,9 @@
 
 using namespace std;
 
-PublicAccountKeyData::PublicAccountKeyData(const uint8_t *bytes, size_t len)
+PublicAccountKeyData::PublicAccountKeyData(const uint8_t *privateKeyBytes, size_t privateKeyBytesLen)
 {
-    raw = public_account_key_create(bytes, len);
+    raw = public_account_key_create(privateKeyBytes, privateKeyBytesLen);
     if (raw == nullptr)
     {
         throw "Invalid Private Key";

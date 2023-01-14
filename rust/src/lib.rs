@@ -83,11 +83,8 @@ pub unsafe extern "C" fn private_key_free(private_key_ptr: *mut PrivateKey) {
     let private_key = &*private_key_ptr;
 
     if !private_key.value.is_null() {
-        println!("rust:private_key_free:value");
         drop(CString::from_raw(private_key.value));
     }
-
-    println!("rust:private_key_free");
 
     drop(Box::from_raw(private_key_ptr))
 }
@@ -95,9 +92,10 @@ pub unsafe extern "C" fn private_key_free(private_key_ptr: *mut PrivateKey) {
 #[no_mangle]
 pub unsafe extern "C" fn public_account_key_create(
     c_bip32_private_key_bytes: *const u8,
-    len: size_t,
+    c_bip32_private_key_len: size_t,
 ) -> *mut PublicAccountKey {
-    let byte_slice = slice::from_raw_parts(c_bip32_private_key_bytes, len as usize);
+    let byte_slice =
+        slice::from_raw_parts(c_bip32_private_key_bytes, c_bip32_private_key_len as usize);
 
     let bip32_private_key_str = match byte_slice_as_utf8(byte_slice) {
         Ok(s) => s,
@@ -136,8 +134,6 @@ pub unsafe extern "C" fn public_account_key_free(public_account_key_ptr: *mut Pu
         drop(CString::from_raw(public_account_key.value));
     }
 
-    println!("rust:public_account_key_free");
-
     drop(Box::from_raw(public_account_key_ptr))
 }
 
@@ -164,8 +160,6 @@ pub unsafe extern "C" fn mnemonic_validation_free(
     if mnemonic_validation_ptr.is_null() {
         return;
     }
-
-    println!("rust:mnemonic_validation_free");
 
     drop(Box::from_raw(mnemonic_validation_ptr))
 }
@@ -217,8 +211,6 @@ pub unsafe extern "C" fn bech32_address_free(bech32_address_ptr: *mut Bech32Addr
     if !bech32_address.value.is_null() {
         drop(CString::from_raw(bech32_address.value));
     }
-
-    println!("rust:bech32_address_free");
 
     drop(Box::from_raw(bech32_address_ptr))
 }
@@ -284,8 +276,6 @@ pub unsafe extern "C" fn payment_address_free(payment_address_ptr: *mut PaymentA
         drop(CString::from_raw(payment_address.value));
     }
 
-    println!("rust:payment_address_free");
-
     drop(Box::from_raw(payment_address_ptr))
 }
 
@@ -326,7 +316,6 @@ pub unsafe extern "C" fn transaction_body_create(
     ) {
         Ok(t) => t,
         Err(err) => {
-            println!("transaction_body err {}", err);
             return ptr::null_mut();
         }
     };
@@ -360,66 +349,77 @@ pub unsafe extern "C" fn transaction_body_free(transaction_body_ptr: *mut Transa
         drop(CString::from_raw(transaction_body.value));
     }
 
-    println!("rust:transaction_body_free");
-
     drop(Box::from_raw(transaction_body_ptr))
 }
 
-// #[no_mangle]
-// pub unsafe extern "C" fn transaction_create(
-//     c_bip32_private_key: *const c_char,
-//     c_payment_signing_key_paths_json: *const c_char,
-//     c_transaction_body_json: *const c_char,
-// ) -> *mut TransactionBody {
-//     let bip32_private_key_str = match c_char_to_str(c_bip32_private_key) {
-//         Ok(s) => s,
-//         Err(_) => return ptr::null_mut(),
-//     };
+#[no_mangle]
+pub unsafe extern "C" fn transaction_create(
+    c_bip32_private_key_bytes: *const u8,
+    c_bip32_private_key_len: size_t,
+    c_payment_signing_key_paths_json: *const c_char,
+    c_transaction_body_json: *const c_char,
+) -> *mut Transaction {
+    let byte_slice =
+        slice::from_raw_parts(c_bip32_private_key_bytes, c_bip32_private_key_len as usize);
 
-//     let payment_signing_key_paths_json = match c_char_to_str(c_payment_signing_key_paths_json) {
-//         Ok(s) => s,
-//         Err(_) => return ptr::null_mut(),
-//     };
+    let bip32_private_key_str = match byte_slice_as_utf8(byte_slice) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
 
-//     let transaction_body_json = match c_char_to_str(c_transaction_body_json) {
-//         Ok(s) => s,
-//         Err(_) => return ptr::null_mut(),
-//     };
+    let payment_signing_key_paths_json = match c_char_to_str(c_payment_signing_key_paths_json) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
 
-//     let bip32_private_key =
-//         match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str) {
-//             Ok(pk) => pk,
-//             Err(_) => return ptr::null_mut(),
-//         };
+    let transaction_body_json = match c_char_to_str(c_transaction_body_json) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
 
-//     let transaction_body = match transactions::create_transaction(
-//         &bip32_private_key,
-//         &payment_signing_key_paths_json,
-//         &transaction_body_json,
-//     ) {
-//         Ok(t) => t,
-//         Err(err) => {
-//             println!("transaction_body err {}", err);
-//             return ptr::null_mut();
-//         }
-//     };
+    let bip32_private_key =
+        match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str) {
+            Ok(pk) => pk,
+            Err(_) => return ptr::null_mut(),
+        };
 
-//     let json = match transaction_body.to_json() {
-//         Ok(json) => json,
-//         Err(_) => return ptr::null_mut(),
-//     };
+    let transaction_hex = match transactions::create_transaction(
+        &bip32_private_key,
+        &payment_signing_key_paths_json,
+        &transaction_body_json,
+    ) {
+        Ok(t) => t,
+        Err(err) => {
+            return ptr::null_mut();
+        }
+    };
 
-//     let json_str = match CString::new(json) {
-//         Ok(s) => s,
-//         Err(_) => return ptr::null_mut(),
-//     };
+    let transaction_hex_cstring = match CString::new(transaction_hex) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
 
-//     let transaction_body = TransactionBody {
-//         value: json_str.into_raw(),
-//     };
+    let transaction = Transaction {
+        value: transaction_hex_cstring.into_raw(),
+    };
 
-//     Box::into_raw(Box::new(transaction_body))
-// }
+    Box::into_raw(Box::new(transaction))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn transaction_free(transaction_ptr: *mut Transaction) {
+    if transaction_ptr.is_null() {
+        return;
+    }
+
+    let transaction = &*transaction_ptr;
+
+    if !transaction.value.is_null() {
+        drop(CString::from_raw(transaction.value));
+    }
+
+    drop(Box::from_raw(transaction_ptr))
+}
 
 enum ErrorType {
     NullPtr,

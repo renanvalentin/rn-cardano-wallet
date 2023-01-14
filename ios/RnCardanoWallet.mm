@@ -7,6 +7,7 @@
 #import "payment-address.h"
 #import "mnemonic-validation.h"
 #import "transaction-body.h"
+#import "transaction.h"
 
 @implementation RnCardanoWallet
 RCT_EXPORT_MODULE()
@@ -135,6 +136,45 @@ bech32StakeVerificationKey:(NSString *)bech32StakeVerificationKey
     
     
     NSString *result = [NSString stringWithCString:transactionBodyCString encoding:[NSString defaultCStringEncoding]];
+    
+    resolve(result);
+}
+
+- (void)transaction:(NSString *)base64Bip32PrivateKey
+paymentSigningKeyPathsJson:(NSString *)paymentSigningKeyPathsJson
+transactionBodyJson:(NSString *)transactionBodyJson
+            resolve:(RCTPromiseResolveBlock)resolve
+             reject:(RCTPromiseRejectBlock)reject
+{
+    const char *paymentSigningKeyPathsJsonCString = [paymentSigningKeyPathsJson UTF8String];
+    const char *transactionBodyJsonCString = [transactionBodyJson UTF8String];
+    
+    NSArray *payload = [base64Bip32PrivateKey componentsSeparatedByString: @":"];
+    
+    NSString *uuid = payload[0];
+    NSData *tag = [uuid dataUsingEncoding:NSUTF8StringEncoding];
+    
+    NSString *cipherText = payload[1];
+    NSData *data = [[NSData alloc] initWithBase64EncodedString:cipherText options:0];
+    
+    NSError *error;
+    
+    NSMutableData *clearBip32PrivateKey = [KeyAgent decrypt:tag cipherText:data withError:&error];
+    
+    if(error){
+        NSString *errorCode = [@(error.code) stringValue];
+        NSString *errorMessage = [error localizedDescription];
+        return reject(errorCode, errorMessage, nil);
+    }
+    
+    const uint8_t *clearBip32PrivateKeyBytes = (uint8_t *)[clearBip32PrivateKey bytes];
+    
+    TransactionData transaction(clearBip32PrivateKeyBytes, clearBip32PrivateKey.length, paymentSigningKeyPathsJsonCString, transactionBodyJsonCString);
+    const char *transactionCString = transaction.getValue();
+    
+    [clearBip32PrivateKey resetBytesInRange:NSMakeRange(0, [clearBip32PrivateKey length])];
+    
+    NSString *result = [NSString stringWithCString:transactionCString encoding:[NSString defaultCStringEncoding]];
     
     resolve(result);
 }

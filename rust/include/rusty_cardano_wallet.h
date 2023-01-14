@@ -28,13 +28,18 @@ struct TransactionBody {
   char *value;
 };
 
+struct Transaction {
+  char *value;
+};
+
 extern "C" {
 
 PrivateKey *private_key_create(const char *c_entropy, const char *c_password);
 
 void private_key_free(PrivateKey *private_key_ptr);
 
-PublicAccountKey *public_account_key_create(const uint8_t *c_bip32_private_key_bytes, size_t len);
+PublicAccountKey *public_account_key_create(const uint8_t *c_bip32_private_key_bytes,
+                                            size_t c_bip32_private_key_len);
 
 void public_account_key_free(PublicAccountKey *public_account_key_ptr);
 
@@ -61,5 +66,12 @@ TransactionBody *transaction_body_create(const char *c_config_json,
                                          uint64_t ttl);
 
 void transaction_body_free(TransactionBody *transaction_body_ptr);
+
+Transaction *transaction_create(const uint8_t *c_bip32_private_key_bytes,
+                                size_t c_bip32_private_key_len,
+                                const char *c_payment_signing_key_paths_json,
+                                const char *c_transaction_body_json);
+
+void transaction_free(Transaction *transaction_ptr);
 
 } // extern "C"

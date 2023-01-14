@@ -19,22 +19,10 @@ import {
   Value,
   TransactionUnspentOutputs,
   PaymentAddress,
+  Transaction,
+  PaymentSigningKeyPath,
+  PaymentSigningKeyPaths,
 } from 'rn-cardano-wallet';
-
-enum Stages {
-  GeneratingPrivateKey = 'Generating private key',
-  PrivateKeyCreated = 'Private Key Created',
-  GeneratingPublicKey = 'Generating public key',
-  PublicKeyCreated = 'Public Key Created',
-  GeneratingPaymentVerificationKey = 'Generating Payment Verification Key',
-  PaymentVerificationKeyCreated = 'Payment Verification Key Created',
-  GeneratingStakeVerificationKey = 'Generating Stake Verification Key',
-  StakeVerificationKeyCreated = 'Stake Verification Key Created',
-  GeneratingPaymentAddress = 'Generating Payment Address',
-  PaymentAddressCreated = 'Payment Address Created',
-  BuildingTransaction = 'Building Transaction',
-  TransactionReady = 'Transaction Ready',
-}
 
 interface State {
   privateKey?: PrivateKey;
@@ -43,39 +31,25 @@ interface State {
   stakeVerificationKey?: StakeVerificationKey;
   paymentAddress?: PaymentAddress;
   transactionBody?: TransactionBody;
-  stage: Stages;
+  transaction?: Transaction;
 }
 
 export default function App() {
   const [state, setState] = useState<State>({
     privateKey: undefined,
     publicAccountKey: undefined,
-    stage: Stages.GeneratingPrivateKey,
+    paymentVerificationKey: undefined,
+    stakeVerificationKey: undefined,
+    paymentAddress: undefined,
+    transactionBody: undefined,
   });
 
   useEffect(() => {
-    const pause = (n = 0) => new Promise((resolve) => setTimeout(resolve, n));
-
     const op = async () => {
-      await pause();
-
       const privateKey = await PrivateKey.create(
         'weapon shock brick category tragic grocery filter lecture cement wreck hundred rigid diagram brain country possible monitor urge among gasp love swarm picture risk',
         ''
       );
-
-      setState((s) => ({
-        ...s,
-        privateKey,
-        stage: Stages.PrivateKeyCreated,
-      }));
-
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.GeneratingPublicKey,
-      }));
 
       const publicAccountKey = await PublicAccountKey.create(privateKey);
 
@@ -84,21 +58,6 @@ export default function App() {
         'xpub18xysay7qk28yp99x5g8g6j65h96jm8ptgkpucg0redax23yrntzaexwe7af7m566qlrdl40h99rwqnng9l0ry702qz79tmnpep277hcmv66ev',
         'Public account key doesnt match'
       );
-
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.PublicKeyCreated,
-        publicAccountKey,
-      }));
-
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.GeneratingPaymentVerificationKey,
-      }));
 
       const paymentVerificationKey = await PaymentVerificationKey.create(
         publicAccountKey
@@ -110,19 +69,6 @@ export default function App() {
         'Payment verification key doesnt match'
       );
 
-      setState((s) => ({
-        ...s,
-        stage: Stages.PaymentVerificationKeyCreated,
-        paymentVerificationKey,
-      }));
-
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.GeneratingPaymentVerificationKey,
-      }));
-
       const stakeVerificationKey = await StakeVerificationKey.create(
         publicAccountKey
       );
@@ -133,19 +79,6 @@ export default function App() {
         'Stake verification key doesnt match'
       );
 
-      setState((s) => ({
-        ...s,
-        stage: Stages.StakeVerificationKeyCreated,
-        stakeVerificationKey,
-      }));
-
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.GeneratingPaymentAddress,
-      }));
-
       const network = 0;
 
       const paymentAddress = await PaymentAddress.create(
@@ -154,20 +87,11 @@ export default function App() {
         stakeVerificationKey
       );
 
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.PaymentAddressCreated,
-        paymentAddress,
-      }));
-
-      await pause();
-
-      setState((s) => ({
-        ...s,
-        stage: Stages.BuildingTransaction,
-      }));
+      assert.equal(
+        paymentAddress.value,
+        'addr_test1qpmulz4p20fp0dezmh5s4k9duudu45upun53c287w9s8f78trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qzfct4l',
+        'Payment address doesnt match'
+      );
 
       const txConfig = TransactionBuilderConfig.create({
         feeAlgo: {
@@ -182,51 +106,90 @@ export default function App() {
         preferPureChange: true,
       });
 
-      const transactionUnspentOutput = TransactionUnspentOutput.create(
+      const transactionUnspentOutput1 = TransactionUnspentOutput.create(
         TransactionInput.create(
           TransactionHash.create(
-            '488afed67b342d41ec08561258e210352fba2ac030c98a8199bc22ec7a27ccf1'
+            '2edf46a289c160372ab9b2ad4673bf20ae5590583d94a58734d88b118b433584'
           ),
-          0
+          3
         ),
         TransactionOutput.create(
           Address.create(
-            'addr_test1qra2njhhucffhtfwq3zyvz3h9huqd87d83zay44h2a6nj0lt8erv04n4weca43v4jhdrpqsc5f5mh2zx0pa4k04v34eq32w05z'
+            'addr_test1qqp74hmqkw4gtdmadc3rr49gj639l06jf0ldg5kqexm2348trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qeh269e'
           ),
-          Value.create(20_000_000n)
+          Value.create(100_000_000n)
+        )
+      );
+
+      const transactionUnspentOutput2 = TransactionUnspentOutput.create(
+        TransactionInput.create(
+          TransactionHash.create(
+            '03e1623048b7a9cd97319308dbb95151c5f47d4c129ed067b13a247630b4b04e'
+          ),
+          4
+        ),
+        TransactionOutput.create(
+          Address.create(
+            'addr_test1qq8vvzpg6l0j2te4kpvl40n8jpdyv0ps65m7wv0wgknckghtrfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qvtznfy'
+          ),
+          Value.create(36_250_000n)
         )
       );
 
       const transactionUnspentOutputs = TransactionUnspentOutputs.create([
-        transactionUnspentOutput,
+        transactionUnspentOutput1,
+        transactionUnspentOutput2,
       ]);
 
       const txOuput = TransactionOutput.create(
         Address.create(
-          'addr_test1qpu5vlrf4xkxv2qpwngf6cjhtw542ayty80v8dyr49rf5ewvxwdrt70qlcpeeagscasafhffqsxy36t90ldv06wqrk2qum8x5w'
+          'addr_test1qpjj6ayphjkcxh3fygz90emlmg6gq8n73cf2zn80zh768j8trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qfa7pyn'
         ),
-        Value.create(8_000_000n)
+        Value.create(120_000_000n)
       );
 
       const changeAddress = Address.create(
-        'addr_test1gz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzerspqgpsqe70et'
+        'addr_test1vz2uwaq7n3wjj66autet46n2je3w99amwcgsyjvp9ah5twcmwxqe6'
       );
 
-      const txBuild = await TransactionBuilder.build({
+      const transactionBody = await TransactionBuilder.build({
         config: txConfig,
         inputs: transactionUnspentOutputs,
         output: txOuput,
         changeAddress,
-        ttl: 1000,
+        ttl: 18044450 + 3600 * 6,
       });
 
-      await pause();
+      const paymentSigningKeyPath1 = PaymentSigningKeyPath.create({
+        changeIndex: 0,
+        index: 3,
+      });
 
-      setState((s) => ({
-        ...s,
-        stage: Stages.TransactionReady,
-        transactionBody: txBuild,
-      }));
+      const paymentSigningKeyPath2 = PaymentSigningKeyPath.create({
+        changeIndex: 0,
+        index: 2,
+      });
+
+      const paymentSigningKeyPaths = PaymentSigningKeyPaths.create([
+        paymentSigningKeyPath1,
+        paymentSigningKeyPath2,
+      ]);
+
+      const transaction = await Transaction.create(
+        privateKey,
+        paymentSigningKeyPaths,
+        transactionBody
+      );
+
+      setState({
+        privateKey,
+        publicAccountKey,
+        paymentVerificationKey,
+        stakeVerificationKey,
+        paymentAddress,
+        transaction,
+        transactionBody,
+      });
     };
 
     op();
@@ -236,8 +199,6 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <View>
         <ScrollView>
-          <Text>{state.stage}</Text>
-
           {state.privateKey && (
             <Text style={styles.text}>
               Private Key: {state.privateKey.value}
@@ -275,17 +236,11 @@ export default function App() {
             </Text>
           )}
 
-          {/* <Text>Public Account Key: {publicAccountKey.value}</Text> */}
-          {/* <Button onPress={() => setFirst(!first)} title="toggle" /> */}
-          {/* 
-          {first &&
-            Array.from({ length: 1 }).map((_, i) => {
-              const pk = PrivateKey.create(
-                'bind hammer ethics slush company special bean alcohol witness stuff umbrella erase police jelly silent firm frog burger glimpse survey tribe fatigue glance icon',
-                ''
-              );
-              return <Text key={i + 1}>Key 2: {pk.value}</Text>;
-            })}*/}
+          {state.transaction && (
+            <Text style={styles.text}>
+              Signed Transaction: {JSON.stringify(state.transaction.value)}
+            </Text>
+          )}
         </ScrollView>
       </View>
     </SafeAreaView>

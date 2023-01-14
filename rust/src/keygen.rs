@@ -3,7 +3,7 @@ use std::str::FromStr;
 use bip39::Mnemonic;
 use cardano_serialization_lib::{
     address::{BaseAddress, StakeCredential},
-    crypto::{Bip32PrivateKey, Bip32PublicKey},
+    crypto::{Bip32PrivateKey, Bip32PublicKey, PrivateKey},
 };
 
 fn harden(index: u32) -> u32 {
@@ -87,6 +87,21 @@ pub fn create_public_account_key(bip32_private_key: Bip32PrivateKey) -> Bech32Ac
         .to_bech32();
 
     Bech32AccountPublicKey::new(account_public_key)
+}
+
+pub fn derive_payment_signing_key(
+    bip32_private_key: &Bip32PrivateKey,
+    account_index: u32,
+    change_index: u32,
+    index: u32,
+) -> PrivateKey {
+    bip32_private_key
+        .derive(harden(1852))
+        .derive(harden(1815))
+        .derive(harden(account_index))
+        .derive(change_index)
+        .derive(index)
+        .to_raw_key()
 }
 
 pub fn create_bip32_public_key_from_bech32(

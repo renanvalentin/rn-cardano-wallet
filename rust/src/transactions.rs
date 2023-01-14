@@ -1,13 +1,15 @@
 use cardano_serialization_lib::{
     address::Address,
-    crypto::Bip32PrivateKey,
+    crypto::{Bip32PrivateKey, PrivateKey, Vkeywitnesses},
     fees::LinearFee,
     tx_builder::{TransactionBuilder, TransactionBuilderConfig, TransactionBuilderConfigBuilder},
-    utils::{to_bignum, TransactionUnspentOutputs},
-    Transaction, TransactionBody, TransactionOutput,
+    utils::{hash_transaction, make_vkey_witness, to_bignum, TransactionUnspentOutputs},
+    Transaction, TransactionBody, TransactionOutput, TransactionWitnessSet,
 };
 use serde::{Deserialize, Serialize};
 use serde_aux::prelude::*;
+
+use crate::keygen::derive_payment_signing_key;
 
 pub fn create_transaction_body(
     config_json: &str,
@@ -64,8 +66,6 @@ pub fn create_transaction_body(
         Err(err) => return Err(err.to_string()),
     };
 
-    println!("change needed {}", change_added);
-
     let transaction_body = match tx_builder.build() {
         Ok(t) => t,
         Err(err) => return Err(err.to_string()),
@@ -74,68 +74,51 @@ pub fn create_transaction_body(
     Ok(transaction_body)
 }
 
-// pub fn create_transaction(
-//     bip32_private_key: &Bip32PrivateKey,
-//     payment_signing_key_paths_json: &str,
-//     transaction_body_json: &str,
-// ) -> Result<TransactionBody, String> {
-//     let transaction_unspent_outputs = match inputs_json_to_transaction_unspent_outputs(inputs_json)
-//     {
-//         Ok(t) => t,
-//         Err(err) => return Err(err),
-//     };
+pub fn create_transaction(
+    bip32_private_key: &Bip32PrivateKey,
+    payment_signing_key_paths_json: &str,
+    transaction_body_json: &str,
+) -> Result<String, String> {
+    let payment_signing_key_paths =
+        match payment_signing_key_paths_json_to_data(payment_signing_key_paths_json) {
+            Ok(p) => p,
+            Err(err) => return Err(err),
+        };
 
-//     let transaction_output = match output_json_to_transaction_output(output_json) {
-//         Ok(t) => t,
-//         Err(err) => return Err(err),
-//     };
+    let transaction_body = match TransactionBody::from_json(transaction_body_json) {
+        Ok(t) => t,
+        Err(err) => return Err(err.to_string()),
+    };
 
-//     let config = match config_json_to_config(config_json) {
-//         Ok(c) => c,
-//         Err(err) => return Err(err),
-//     };
+    let transaction_hash = hash_transaction(&transaction_body);
 
-//     let transaction_builder_config = match create_transaction_builder_config(&config) {
-//         Ok(c) => c,
-//         Err(err) => return Err(err),
-//     };
+    let payment_signing_keys = payment_signing_key_paths
+        .iter()
+        .map(|path| {
+            derive_payment_signing_key(
+                bip32_private_key,
+                path.account_index,
+                path.change_index,
+                path.index,
+            )
+        })
+        .collect::<Vec<PrivateKey>>();
 
-//     let change_address = match Address::from_bech32(bech32_change_address) {
-//         Ok(addr) => addr,
-//         Err(err) => return Err(err.to_string()),
-//     };
+    let mut witness_set = TransactionWitnessSet::new();
+    let mut vkw = Vkeywitnesses::new();
 
-//     let mut tx_builder = TransactionBuilder::new(&transaction_builder_config);
+    for payment_signing_key in payment_signing_keys {
+        let vkey_witness = make_vkey_witness(&transaction_hash, &payment_signing_key);
 
-//     match tx_builder.add_output(&transaction_output) {
-//         Err(err) => return Err(err.to_string()),
-//         _ => (),
-//     };
+        vkw.add(&vkey_witness);
+    }
 
-//     match tx_builder.add_inputs_from(
-//         &transaction_unspent_outputs,
-//         cardano_serialization_lib::tx_builder::CoinSelectionStrategyCIP2::RandomImproveMultiAsset,
-//     ) {
-//         Err(err) => return Err(err.to_string()),
-//         _ => (),
-//     }
+    witness_set.set_vkeys(&vkw);
 
-//     tx_builder.set_ttl_bignum(&to_bignum(ttl));
+    let transaction = Transaction::new(&transaction_body, &witness_set, None);
 
-//     let change_added = match tx_builder.add_change_if_needed(&change_address) {
-//         Ok(needed) => needed,
-//         Err(err) => return Err(err.to_string()),
-//     };
-
-//     println!("change needed {}", change_added);
-
-//     let transaction_body = match tx_builder.build() {
-//         Ok(t) => t,
-//         Err(err) => return Err(err.to_string()),
-//     };
-
-//     Ok(transaction_body)
-// }
+    Ok(transaction.to_hex())
+}
 
 #[derive(Serialize, Deserialize)]
 struct FeeAlgo {
@@ -226,6 +209,8 @@ fn output_json_to_transaction_output(output_json: &str) -> Result<TransactionOut
 #[derive(Serialize, Deserialize)]
 struct PaymentSigningKeyPath {
     #[serde(deserialize_with = "deserialize_number_from_string")]
+    account_index: u32,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
     change_index: u32,
     #[serde(deserialize_with = "deserialize_number_from_string")]
     index: u32,
@@ -240,6 +225,13 @@ fn payment_signing_key_paths_json_to_data(
     }
 }
 
+fn transaction_body_json_to_data(transaction_body_json: &str) -> Result<TransactionBody, String> {
+    match TransactionBody::from_json(transaction_body_json) {
+        Ok(c) => Ok(c),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use cardano_serialization_lib::{crypto::ScriptHash, AssetName};
@@ -247,15 +239,69 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_transaction_body_json_to_data() {
+        let str_json = r#"
+        {
+            "inputs": [
+              {
+                "transaction_id": "2edf46a289c160372ab9b2ad4673bf20ae5590583d94a58734d88b118b433584",
+                "index": 3
+              }
+            ],
+            "outputs": [
+              {
+                "address": "addr_test1qpjj6ayphjkcxh3fygz90emlmg6gq8n73cf2zn80zh768j8trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qfa7pyn",
+                "amount": {
+                  "coin": "50000000",
+                  "multiasset": null
+                },
+                "plutus_data": null,
+                "script_ref": null
+              },
+              {
+                "address": "addr_test1vz2uwaq7n3wjj66autet46n2je3w99amwcgsyjvp9ah5twcmwxqe6",
+                "amount": {
+                  "coin": "49833047",
+                  "multiasset": null
+                },
+                "plutus_data": null,
+                "script_ref": null
+              }
+            ],
+            "fee": "166953",
+            "ttl": "90",
+            "certs": null,
+            "withdrawals": null,
+            "update": null,
+            "auxiliary_data_hash": null,
+            "validity_start_interval": null,
+            "mint": null,
+            "script_data_hash": null,
+            "collateral": null,
+            "required_signers": null,
+            "network_id": null,
+            "collateral_return": null,
+            "total_collateral": null,
+            "reference_inputs": null
+          }"#;
+
+        let transaction_body = transaction_body_json_to_data(str_json).unwrap();
+
+        assert_eq!(transaction_body.fee().to_string(), "166953");
+    }
+
+    #[test]
     fn test_payment_signing_key_paths_json_to_data() {
         let str_json = r#"
         [{
+            "account_index": 0,
             "change_index": 0,
             "index": 0
          }]"#;
 
         let paths = payment_signing_key_paths_json_to_data(str_json).unwrap();
 
+        assert_eq!(paths[0].account_index, 0);
         assert_eq!(paths[0].change_index, 0);
         assert_eq!(paths[0].index, 0);
     }
