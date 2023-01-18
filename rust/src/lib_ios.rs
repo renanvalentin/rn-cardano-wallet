@@ -3,9 +3,9 @@ use std::ffi::{CStr, CString};
 use std::str;
 use std::{ptr, slice};
 
-mod bip39;
-mod keygen;
-mod transactions;
+use crate::bip39;
+use crate::keygen;
+use crate::transactions;
 
 #[repr(C)]
 pub struct PrivateKey {
