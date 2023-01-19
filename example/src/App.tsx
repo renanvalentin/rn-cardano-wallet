@@ -46,10 +46,13 @@ export default function App() {
 
   useEffect(() => {
     const op = async () => {
+      console.log('adsfa');
       const privateKey = await PrivateKey.create(
         'weapon shock brick category tragic grocery filter lecture cement wreck hundred rigid diagram brain country possible monitor urge among gasp love swarm picture risk',
         ''
       );
+
+      console.log('pk', privateKey.value);
 
       const publicAccountKey = await PublicAccountKey.create(privateKey);
 
@@ -59,137 +62,142 @@ export default function App() {
         'Public account key doesnt match'
       );
 
-      const paymentVerificationKey = await PaymentVerificationKey.create(
-        publicAccountKey
-      );
-
-      assert.equal(
-        paymentVerificationKey.value,
-        'xpub1urgdmy77t2y04glr436dnfgxzz0e8zfp2jl0cgkh0gvrztljl2mpfmuz7t7575xfkn6n77l67kz25g39nncp4gqh44pkh3k9nnr075s2n92ht',
-        'Payment verification key doesnt match'
-      );
-
-      const stakeVerificationKey = await StakeVerificationKey.create(
-        publicAccountKey
-      );
-
-      assert.equal(
-        stakeVerificationKey.value,
-        'xpub1vwklcehh2q3fhvvctkjkds9l0m59jsc95cpdq7qsrkenyn0zngyn8pk3kyu6a5pzczxz7e0agx88rnzlnatgwv83lyp2899fve6evksppm7wr',
-        'Stake verification key doesnt match'
-      );
-
-      const network = 0;
-
-      const paymentAddress = await PaymentAddress.create(
-        network,
-        paymentVerificationKey,
-        stakeVerificationKey
-      );
-
-      assert.equal(
-        paymentAddress.value,
-        'addr_test1qpmulz4p20fp0dezmh5s4k9duudu45upun53c287w9s8f78trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qzfct4l',
-        'Payment address doesnt match'
-      );
-
-      const txConfig = TransactionBuilderConfig.create({
-        feeAlgo: {
-          coefficient: 44,
-          constant: 155381,
-        },
-        coinsPerUtxoByte: 34482,
-        poolDeposit: 500000000,
-        keyDeposit: 2000000,
-        maxValueSize: 4000,
-        maxTxSize: 8000,
-        preferPureChange: true,
-      });
-
-      const transactionUnspentOutput1 = TransactionUnspentOutput.create(
-        TransactionInput.create(
-          TransactionHash.create(
-            '2edf46a289c160372ab9b2ad4673bf20ae5590583d94a58734d88b118b433584'
-          ),
-          3
-        ),
-        TransactionOutput.create(
-          Address.create(
-            'addr_test1qqp74hmqkw4gtdmadc3rr49gj639l06jf0ldg5kqexm2348trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qeh269e'
-          ),
-          Value.create(100_000_000n)
-        )
-      );
-
-      const transactionUnspentOutput2 = TransactionUnspentOutput.create(
-        TransactionInput.create(
-          TransactionHash.create(
-            '03e1623048b7a9cd97319308dbb95151c5f47d4c129ed067b13a247630b4b04e'
-          ),
-          4
-        ),
-        TransactionOutput.create(
-          Address.create(
-            'addr_test1qq8vvzpg6l0j2te4kpvl40n8jpdyv0ps65m7wv0wgknckghtrfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qvtznfy'
-          ),
-          Value.create(36_250_000n)
-        )
-      );
-
-      const transactionUnspentOutputs = TransactionUnspentOutputs.create([
-        transactionUnspentOutput1,
-        transactionUnspentOutput2,
-      ]);
-
-      const txOuput = TransactionOutput.create(
-        Address.create(
-          'addr_test1qpjj6ayphjkcxh3fygz90emlmg6gq8n73cf2zn80zh768j8trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qfa7pyn'
-        ),
-        Value.create(120_000_000n)
-      );
-
-      const changeAddress = Address.create(
-        'addr_test1vz2uwaq7n3wjj66autet46n2je3w99amwcgsyjvp9ah5twcmwxqe6'
-      );
-
-      const transactionBody = await TransactionBuilder.build({
-        config: txConfig,
-        inputs: transactionUnspentOutputs,
-        output: txOuput,
-        changeAddress,
-        ttl: 18044450 + 3600 * 6,
-      });
-
-      const paymentSigningKeyPath1 = PaymentSigningKeyPath.create({
-        changeIndex: 0,
-        index: 3,
-      });
-
-      const paymentSigningKeyPath2 = PaymentSigningKeyPath.create({
-        changeIndex: 0,
-        index: 2,
-      });
-
-      const paymentSigningKeyPaths = PaymentSigningKeyPaths.create([
-        paymentSigningKeyPath1,
-        paymentSigningKeyPath2,
-      ]);
-
-      const transaction = await Transaction.create(
-        privateKey,
-        paymentSigningKeyPaths,
-        transactionBody
-      );
-
       setState({
         privateKey,
         publicAccountKey,
-        paymentVerificationKey,
-        stakeVerificationKey,
-        paymentAddress,
-        transaction,
-        transactionBody,
       });
+
+      // const paymentVerificationKey = await PaymentVerificationKey.create(
+      //   publicAccountKey
+      // );
+
+      // assert.equal(
+      //   paymentVerificationKey.value,
+      //   'xpub1urgdmy77t2y04glr436dnfgxzz0e8zfp2jl0cgkh0gvrztljl2mpfmuz7t7575xfkn6n77l67kz25g39nncp4gqh44pkh3k9nnr075s2n92ht',
+      //   'Payment verification key doesnt match'
+      // );
+
+      // const stakeVerificationKey = await StakeVerificationKey.create(
+      //   publicAccountKey
+      // );
+
+      // assert.equal(
+      //   stakeVerificationKey.value,
+      //   'xpub1vwklcehh2q3fhvvctkjkds9l0m59jsc95cpdq7qsrkenyn0zngyn8pk3kyu6a5pzczxz7e0agx88rnzlnatgwv83lyp2899fve6evksppm7wr',
+      //   'Stake verification key doesnt match'
+      // );
+
+      // const network = 0;
+
+      // const paymentAddress = await PaymentAddress.create(
+      //   network,
+      //   paymentVerificationKey,
+      //   stakeVerificationKey
+      // );
+
+      // assert.equal(
+      //   paymentAddress.value,
+      //   'addr_test1qpmulz4p20fp0dezmh5s4k9duudu45upun53c287w9s8f78trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qzfct4l',
+      //   'Payment address doesnt match'
+      // );
+
+      // const txConfig = TransactionBuilderConfig.create({
+      //   feeAlgo: {
+      //     coefficient: 44,
+      //     constant: 155381,
+      //   },
+      //   coinsPerUtxoByte: 34482,
+      //   poolDeposit: 500000000,
+      //   keyDeposit: 2000000,
+      //   maxValueSize: 4000,
+      //   maxTxSize: 8000,
+      //   preferPureChange: true,
+      // });
+
+      // const transactionUnspentOutput1 = TransactionUnspentOutput.create(
+      //   TransactionInput.create(
+      //     TransactionHash.create(
+      //       '2edf46a289c160372ab9b2ad4673bf20ae5590583d94a58734d88b118b433584'
+      //     ),
+      //     3
+      //   ),
+      //   TransactionOutput.create(
+      //     Address.create(
+      //       'addr_test1qqp74hmqkw4gtdmadc3rr49gj639l06jf0ldg5kqexm2348trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qeh269e'
+      //     ),
+      //     Value.create(100_000_000n)
+      //   )
+      // );
+
+      // const transactionUnspentOutput2 = TransactionUnspentOutput.create(
+      //   TransactionInput.create(
+      //     TransactionHash.create(
+      //       '03e1623048b7a9cd97319308dbb95151c5f47d4c129ed067b13a247630b4b04e'
+      //     ),
+      //     4
+      //   ),
+      //   TransactionOutput.create(
+      //     Address.create(
+      //       'addr_test1qq8vvzpg6l0j2te4kpvl40n8jpdyv0ps65m7wv0wgknckghtrfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qvtznfy'
+      //     ),
+      //     Value.create(36_250_000n)
+      //   )
+      // );
+
+      // const transactionUnspentOutputs = TransactionUnspentOutputs.create([
+      //   transactionUnspentOutput1,
+      //   transactionUnspentOutput2,
+      // ]);
+
+      // const txOuput = TransactionOutput.create(
+      //   Address.create(
+      //     'addr_test1qpjj6ayphjkcxh3fygz90emlmg6gq8n73cf2zn80zh768j8trfmehefs0j9jnhhlkn9t6ctsjq4guvtf8hs9kmtqqa8qfa7pyn'
+      //   ),
+      //   Value.create(120_000_000n)
+      // );
+
+      // const changeAddress = Address.create(
+      //   'addr_test1vz2uwaq7n3wjj66autet46n2je3w99amwcgsyjvp9ah5twcmwxqe6'
+      // );
+
+      // const transactionBody = await TransactionBuilder.build({
+      //   config: txConfig,
+      //   inputs: transactionUnspentOutputs,
+      //   output: txOuput,
+      //   changeAddress,
+      //   ttl: 18044450 + 3600 * 6,
+      // });
+
+      // const paymentSigningKeyPath1 = PaymentSigningKeyPath.create({
+      //   changeIndex: 0,
+      //   index: 3,
+      // });
+
+      // const paymentSigningKeyPath2 = PaymentSigningKeyPath.create({
+      //   changeIndex: 0,
+      //   index: 2,
+      // });
+
+      // const paymentSigningKeyPaths = PaymentSigningKeyPaths.create([
+      //   paymentSigningKeyPath1,
+      //   paymentSigningKeyPath2,
+      // ]);
+
+      // const transaction = await Transaction.create(
+      //   privateKey,
+      //   paymentSigningKeyPaths,
+      //   transactionBody
+      // );
+
+      // setState({
+      //   privateKey,
+      //   publicAccountKey,
+      //   paymentVerificationKey,
+      //   stakeVerificationKey,
+      //   paymentAddress,
+      //   transaction,
+      //   transactionBody,
+      // });
     };
 
     op();

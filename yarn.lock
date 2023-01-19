@@ -1249,11 +1249,6 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@emurgo/cardano-serialization-lib-nodejs@11.2.1":
-  version "11.2.1"
-  resolved "https://registry.yarnpkg.com/@emurgo/cardano-serialization-lib-nodejs/-/cardano-serialization-lib-nodejs-11.2.1.tgz#f642c0ae92cdf1822555d9ee7496dd21d41aa709"
-  integrity sha512-+Rw35NW4Qv/9uFaPxhKtxiIPmoBEIFMAgdqQxZTw6hNT/wvBp2TvwTBPnOW8ODs7GUAA8nrO1rJJAaxF+mAG2w==
-
 "@eslint/eslintrc@^1.4.0":
   version "1.4.0"
   resolved "https://registry.npmjs.org/@eslint/eslintrc/-/eslintrc-1.4.0.tgz"

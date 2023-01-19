@@ -3,9 +3,9 @@
 
 using namespace std;
 
-TransactionData::TransactionData(const uint8_t *privateKeyBytes, size_t privateKeyBytesLen, const char *c_payment_signing_key_paths_json, const char *c_transaction_body_json)
+TransactionData::TransactionData(const uint8_t *privateKeyBytes, size_t privateKeyBytesLen, const char *cPaymentSigningKeyPathsJson, const char *cTransactionBodyJson)
 {
-    raw = transaction_create(privateKeyBytes, privateKeyBytesLen, c_payment_signing_key_paths_json, c_transaction_body_json);
+    raw = transaction_create(privateKeyBytes, privateKeyBytesLen, cPaymentSigningKeyPathsJson, cTransactionBodyJson);
     if (raw == nullptr)
     {
         throw "Invalid Args";
