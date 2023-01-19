@@ -5,7 +5,6 @@ set (CMAKE_CXX_STANDARD 11)
 
 add_library(cpp
             SHARED
-            ../cpp/rn-cardano-wallet.cpp
             cpp-adapter.cpp
 )
 

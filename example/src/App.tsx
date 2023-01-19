@@ -192,13 +192,14 @@ export default function App() {
       });
     };
 
-    op();
+    //   op();
   }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <View>
         <ScrollView>
+          <Text style={styles.text}>content</Text>
           {state.privateKey && (
             <Text style={styles.text}>
               Private Key: {state.privateKey.value}
