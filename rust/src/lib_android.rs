@@ -10,10 +10,16 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePriv
     env: JNIEnv,
     _: JClass,
     mnemonic: JString,
+    salt: JString,
     password: JString,
 ) -> jobject {
     let mnemonic: String = env
         .get_string(mnemonic)
+        .expect("Couldn't get java string!")
+        .into();
+
+    let salt: String = env
+        .get_string(salt)
         .expect("Couldn't get java string!")
         .into();
 
@@ -22,7 +28,7 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePriv
         .expect("Couldn't get java string!")
         .into();
 
-    let private_key = match keygen::create_private_key(&mnemonic, &password) {
+    let private_key = match keygen::create_private_key(&mnemonic, &salt, &password) {
         Ok(private_key) => private_key,
         Err(err) => {
             env.throw_new("java/lang/RuntimeException", "panic occurred");
@@ -46,19 +52,26 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePubl
     env: JNIEnv,
     _: JClass,
     bip32_private_key: JString,
+    password: JString,
 ) -> jobject {
     let bip32_private_key: String = env
         .get_string(bip32_private_key)
         .expect("Couldn't get java string!")
         .into();
 
-    let bip32_private_key = match keygen::create_bip32_private_key_from_bech32(&bip32_private_key) {
-        Ok(pk) => pk,
-        Err(err) => {
-            env.throw_new("java/lang/RuntimeException", "panic occurred");
-            return ::std::ptr::null_mut() as jstring;
-        }
-    };
+    let password: String = env
+        .get_string(password)
+        .expect("Couldn't get java string!")
+        .into();
+
+    let bip32_private_key =
+        match keygen::create_bip32_private_key_from_bech32(&bip32_private_key, &password) {
+            Ok(pk) => pk,
+            Err(err) => {
+                env.throw_new("java/lang/RuntimeException", "panic occurred");
+                return ::std::ptr::null_mut() as jstring;
+            }
+        };
 
     let bech32_public_account_key = keygen::create_public_account_key(bip32_private_key);
 
@@ -290,11 +303,17 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativeTran
     env: JNIEnv,
     _: JClass,
     private_key: JString,
+    password: JString,
     payment_signing_key_paths_json: JString,
     transaction_body_json: JString,
 ) -> jstring {
     let private_key: String = env
         .get_string(private_key)
+        .expect("Couldn't get java string!")
+        .into();
+
+    let password: String = env
+        .get_string(password)
         .expect("Couldn't get java string!")
         .into();
 
@@ -308,13 +327,14 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativeTran
         .expect("Couldn't get java string!")
         .into();
 
-    let bip32_private_key = match keygen::create_bip32_private_key_from_bech32(&private_key) {
-        Ok(pk) => pk,
-        Err(err) => {
-            env.throw_new("java/lang/RuntimeException", "panic occurred");
-            return ::std::ptr::null_mut() as jstring;
-        }
-    };
+    let bip32_private_key =
+        match keygen::create_bip32_private_key_from_bech32(&private_key, &password) {
+            Ok(pk) => pk,
+            Err(err) => {
+                env.throw_new("java/lang/RuntimeException", "panic occurred");
+                return ::std::ptr::null_mut() as jstring;
+            }
+        };
 
     let transaction_hex = match transactions::create_transaction(
         &bip32_private_key,

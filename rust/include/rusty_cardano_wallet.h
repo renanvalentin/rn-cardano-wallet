@@ -4,6 +4,32 @@
 #include <ostream>
 #include <new>
 
+constexpr static const uint32_t ITER = 19162;
+
+constexpr static const uintptr_t SALT_SIZE = 32;
+
+constexpr static const uintptr_t NONCE_SIZE = 12;
+
+constexpr static const uintptr_t KEY_SIZE = 32;
+
+constexpr static const uintptr_t TAG_SIZE = 16;
+
+constexpr static const uintptr_t METADATA_SIZE = ((SALT_SIZE + NONCE_SIZE) + TAG_SIZE);
+
+constexpr static const uintptr_t SALT_START = 0;
+
+constexpr static const uintptr_t SALT_END = (SALT_START + SALT_SIZE);
+
+constexpr static const uintptr_t NONCE_START = SALT_END;
+
+constexpr static const uintptr_t NONCE_END = (NONCE_START + NONCE_SIZE);
+
+constexpr static const uintptr_t TAG_START = NONCE_END;
+
+constexpr static const uintptr_t TAG_END = (TAG_START + TAG_SIZE);
+
+constexpr static const uintptr_t ENCRYPTED_START = TAG_END;
+
 struct PrivateKey {
   char *value;
 };
@@ -34,12 +60,13 @@ struct Transaction {
 
 extern "C" {
 
-PrivateKey *private_key_create(const char *c_entropy, const char *c_password);
+PrivateKey *private_key_create(const char *c_mnemonic, const char *c_salt, const char *c_password);
 
 void private_key_free(PrivateKey *private_key_ptr);
 
 PublicAccountKey *public_account_key_create(const uint8_t *c_bip32_private_key_bytes,
-                                            size_t c_bip32_private_key_len);
+                                            size_t c_bip32_private_key_len,
+                                            const char *c_password);
 
 void public_account_key_free(PublicAccountKey *public_account_key_ptr);
 
@@ -69,6 +96,7 @@ void transaction_body_free(TransactionBody *transaction_body_ptr);
 
 Transaction *transaction_create(const uint8_t *c_bip32_private_key_bytes,
                                 size_t c_bip32_private_key_len,
+                                const char *c_password,
                                 const char *c_payment_signing_key_paths_json,
                                 const char *c_transaction_body_json);
 

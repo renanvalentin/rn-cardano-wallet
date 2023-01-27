@@ -1,11 +1,13 @@
 package com.rncardanowallet;
 
-public class PrivateKeyRequest {
-  public  String mnemonic;
-  public  String password;
+import android.os.Bundle;
 
-  public PrivateKeyRequest(String mnemonic, String password) {
-    this.mnemonic = mnemonic;
-    this.password = password;
+public class PrivateKeyRequest {
+  public static Bundle create(String mnemonic, String salt, String password) {
+    Bundle bundle = new Bundle();
+    bundle.putString("mnemonic", mnemonic);
+    bundle.putString("salt", salt);
+    bundle.putString("password", password);
+    return bundle;
   }
 }

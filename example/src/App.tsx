@@ -47,14 +47,18 @@ export default function App() {
   useEffect(() => {
     const op = async () => {
       console.log('adsfa');
+      const password = '1234';
+
       const privateKey = await PrivateKey.create(
         'weapon shock brick category tragic grocery filter lecture cement wreck hundred rigid diagram brain country possible monitor urge among gasp love swarm picture risk',
-        ''
+        '',
+        password
       );
 
-      console.log('pk', privateKey.value);
-
-      const publicAccountKey = await PublicAccountKey.create(privateKey);
+      const publicAccountKey = await PublicAccountKey.create(
+        privateKey,
+        password
+      );
 
       assert.equal(
         publicAccountKey.value,

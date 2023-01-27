@@ -6,12 +6,16 @@ import { Mnemonic } from './mnemonic';
 export class PrivateKey {
   private constructor(readonly value: Bech32) {}
 
-  public static async create(mnemonic: string, password: string) {
+  public static async create(mnemonic: string, salt: string, password: string) {
     if (!(await Mnemonic.validate(mnemonic))) {
       throw new ValidationError('Invalid mnemonic');
     }
 
-    const privateKey = await RnCardanoWallet.privateKey(mnemonic, password);
+    const privateKey = await RnCardanoWallet.privateKey(
+      mnemonic,
+      salt,
+      password
+    );
 
     return new PrivateKey(privateKey);
   }

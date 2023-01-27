@@ -4,11 +4,11 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
-import android.widget.Toast;
 
 import androidx.annotation.RequiresApi;
 
@@ -23,6 +23,7 @@ public class MessengerService extends Service {
    */
 
   static final int CREATE_PRIVATE_KEY = 2;
+  static final int CREATE_PRIVATE_KEY_REPLY = 21;
   static final int CREATE_PUBLIC_ACCOUNT_KEY = 3;
   static final int CREATE_TRANSACTION = 4;
 
@@ -42,7 +43,7 @@ public class MessengerService extends Service {
       switch (msg.what) {
         case CREATE_PRIVATE_KEY:
           try {
-            MessengerService.createPrivateKey((PrivateKeyRequest)msg.obj, msg.replyTo);
+            MessengerService.createPrivateKey(msg.getData(), msg.replyTo);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -50,7 +51,7 @@ public class MessengerService extends Service {
           break;
         case CREATE_PUBLIC_ACCOUNT_KEY:
           try {
-            MessengerService.createPublicAccountKey((PublicAccountKeyRequest)msg.obj, msg.replyTo);
+            MessengerService.createPublicAccountKey(msg.getData(), msg.replyTo);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -62,37 +63,33 @@ public class MessengerService extends Service {
   }
 
   @RequiresApi(api = Build.VERSION_CODES.O)
-  private static void createPrivateKey(PrivateKeyRequest request, Messenger replyMessenger) throws Exception {
-    final String privateKey = RnCardanoWalletModule.nativePrivateKey(request.mnemonic, request.password);
+  private static void createPrivateKey(Bundle request, Messenger replyMessenger) throws Exception {
+   // android.os.Debug.waitForDebugger();
+    String mnemonic = request.getString("mnemonic");
+    String salt = request.getString("salt");
+    String password = request.getString("password");
 
-    UUID uuid = UUID.randomUUID();
-    String keyName = uuid.toString();
+    final String privateKey = RnCardanoWalletModule.nativePrivateKey(mnemonic, salt, password);
 
-    EncryptionService.generateKeyPair(keyName);
-    String cipherText = EncryptionService.encrypt(keyName, privateKey);
-
-    String result = keyName + SEPARATOR + cipherText;
+    request.putString("privateKey", privateKey);
 
     Message message = new Message();
-    message.obj = Base64.getEncoder().encodeToString(result.getBytes());
+    message.setData(request);
 
     replyMessenger.send(message);
   }
 
   @RequiresApi(api = Build.VERSION_CODES.O)
-  private static void createPublicAccountKey(PublicAccountKeyRequest request, Messenger replyMessenger) throws Exception {
-    byte[] decodedBytes = Base64.getDecoder().decode(request.base64Bip32PrivateKey);
-    String decodedString = new String(decodedBytes);
-    String[] payload = decodedString.split(SEPARATOR);
-    String keyName = payload[0];
-    String cipherTex =  payload[1];
+  private static void createPublicAccountKey(Bundle request, Messenger replyMessenger) throws Exception {
+    String base64Bip32PrivateKey = request.getString("base64Bip32PrivateKey");
+    String password = request.getString("password");
 
-    String privateKey = EncryptionService.decrypt(keyName, cipherTex);
+    final String publicAccountKey = RnCardanoWalletModule.nativePublicAccountKey(base64Bip32PrivateKey, password);
 
-    final String publicAccountKey = RnCardanoWalletModule.nativePublicAccountKey(privateKey);
+    request.putString("publicAccountKey", publicAccountKey);
 
     Message message = new Message();
-    message.obj = publicAccountKey;
+    message.setData(request);
 
     replyMessenger.send(message);
   }
@@ -109,7 +106,6 @@ public class MessengerService extends Service {
    */
   @Override
   public IBinder onBind(Intent intent) {
-    Toast.makeText(getApplicationContext(), "binding", Toast.LENGTH_SHORT).show();
     mMessenger = new Messenger(new IncomingHandler(this));
     return mMessenger.getBinder();
   }

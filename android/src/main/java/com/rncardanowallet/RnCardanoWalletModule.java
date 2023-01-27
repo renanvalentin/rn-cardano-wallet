@@ -1,9 +1,12 @@
 package com.rncardanowallet;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -12,6 +15,7 @@ import android.os.RemoteException;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -35,80 +39,68 @@ public class RnCardanoWalletModule extends NativeRnCardanoWalletSpec {
     super(reactContext);
 
     mReactApplicationContext = reactContext;
-
-    startService();
-    bindService();
   }
-
-  /** Messenger for communicating with the service. */
-  Messenger mService = null;
-
-  /** Flag indicating whether we have called bind on the service. */
-  boolean bound;
-
-  private ServiceConnection mConnection = new ServiceConnection() {
-    public void onServiceConnected(ComponentName className, IBinder service) {
-      mService = new Messenger(service);
-      bound = true;
-    }
-
-    public void onServiceDisconnected(ComponentName className) {
-      mService = null;
-      bound = false;
-    }
-  };
-
-  private void startService() {
-    Intent intent = new Intent(this.mReactApplicationContext, MessengerService.class);
-    this.mReactApplicationContext.startService(intent);
-  }
-
-  private void bindService() {
-    Intent intent = new Intent(this.mReactApplicationContext, MessengerService.class);
-    this.mReactApplicationContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-  }
-
-  public static native String nativePrivateKey(String mnemonic, String password);
+  public static native String nativePrivateKey(String mnemonic, String salt, String password);
   private static native boolean nativeMnemonicValidation(String mnemonic);
-  public static native String nativePublicAccountKey(String bip32PrivateKey);
+  public static native String nativePublicAccountKey(String bip32PrivateKey, String password);
   public static native String nativeBech32Address(String bech32PublicKey, int changeIndex, int index);
   public static native String nativePaymentAddress(String bech32PublicKey, int changeIndex, int index);
   public static native String nativeTransactionBody(String configJson, String inputsJson, String outputJson, String bech32ChangeAddress, double ttl);
   public static native String nativeTransaction(String bip32PrivateKey, String[] paymentSigningKeyPathsJson, String transactionBody);
 
+  private void sendMessage(Message message) throws RemoteException {
+    RnCardanoWalletActivityMessenger messenger = (RnCardanoWalletActivityMessenger)mReactApplicationContext.getCurrentActivity();
+    messenger.sendMessage(message);
+  }
+  @RequiresApi(api = Build.VERSION_CODES.O)
   @Override
-  public void privateKey(String entropy, String password, Promise promise) {
+  public void privateKey(String entropy, String salt, String password, Promise promise) {
     MessageHandler handler = (Message msg) -> {
-      String privateKey = msg.obj.toString();
-      promise.resolve(privateKey);
+      Bundle bundle = msg.getData();
+      String privateKey = bundle.getString("privateKey");
+      try {
+        String wrapped = KeyWrap.wrap(privateKey);
+        promise.resolve(wrapped);
+      } catch (Exception e) {
+        promise.resolve(e);
+      }
     };
 
-    PrivateKeyRequest request = new PrivateKeyRequest(entropy, password);
+    Bundle request = PrivateKeyRequest.create(entropy, salt, password);
 
     Message msg = ReplyMessenger.create(request, MessengerService.CREATE_PRIVATE_KEY, handler);
 
     try {
-      mService.send(msg);
+      this.sendMessage(msg);
     } catch (RemoteException e) {
-      throw new RuntimeException(e);
+      promise.reject(e);
     }
   }
 
+  @RequiresApi(api = Build.VERSION_CODES.O)
   @Override
-  public void publicAccountKey(String base64Bip32PrivateKey, Promise promise) {
+  public void publicAccountKey(String base64Bip32PrivateKey, String password, Promise promise) {
     MessageHandler handler = (Message msg) -> {
-      String publicAccountKey = msg.obj.toString();
+      Bundle bundle = msg.getData();
+      String publicAccountKey = bundle.getString("publicAccountKey");
       promise.resolve(publicAccountKey);
     };
 
-    PublicAccountKeyRequest request = new PublicAccountKeyRequest(base64Bip32PrivateKey);
+    String unwrappedKey = null;
+    try {
+      unwrappedKey = KeyWrap.unwrap(base64Bip32PrivateKey);
+    } catch (Exception e) {
+      promise.reject(e);
+    }
+
+    Bundle request = PublicAccountKeyRequest.create(unwrappedKey, password);
 
     Message msg = ReplyMessenger.create(request, MessengerService.CREATE_PUBLIC_ACCOUNT_KEY, handler);
 
     try {
-      mService.send(msg);
+      this.sendMessage(msg);
     } catch (RemoteException e) {
-      throw new RuntimeException(e);
+      promise.reject(e);
     }
   }
 
@@ -133,7 +125,7 @@ public class RnCardanoWalletModule extends NativeRnCardanoWalletSpec {
   }
 
   @Override
-  public void transaction(String base64Bip32PrivateKey, String paymentSigningKeyPathsJson, String transactionBodyJson, Promise promise) {
+  public void transaction(String base64Bip32PrivateKey, String password, String paymentSigningKeyPathsJson, String transactionBodyJson, Promise promise) {
 
   }
 

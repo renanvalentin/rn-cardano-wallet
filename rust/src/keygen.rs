@@ -6,6 +6,8 @@ use cardano_serialization_lib::{
     crypto::{Bip32PrivateKey, Bip32PublicKey, PrivateKey},
 };
 
+use crate::password::{password_decrypt, password_encrypt};
+
 fn harden(index: u32) -> u32 {
     index | 0x80_00_00_00
 }
@@ -52,25 +54,39 @@ impl Bech32Address {
     }
 }
 
-pub fn create_private_key(entropy: &str, password: &str) -> Result<Bech32PrivateKey, String> {
-    let mnemonic = match Mnemonic::from_str(&entropy) {
+pub fn create_private_key(
+    mnemonic: &str,
+    salt: &str,
+    password: &str,
+) -> Result<Bech32PrivateKey, String> {
+    let mnemonic = match Mnemonic::from_str(&mnemonic) {
         Ok(m) => m,
         Err(err) => return Err(err.to_string()),
     };
 
-    let e = mnemonic.to_entropy();
+    let entropy = mnemonic.to_entropy();
 
     let bech32_private_key =
-        Bip32PrivateKey::from_bip39_entropy(&e, password.as_bytes()).to_bech32();
+        Bip32PrivateKey::from_bip39_entropy(&entropy, salt.as_bytes()).to_bech32();
 
-    Ok(Bech32PrivateKey::new(bech32_private_key))
-    // Ok(Bech32PrivateKey::new(String::from("test")))
+    let encrypted_private_key = match password_encrypt(password, bech32_private_key.as_bytes()) {
+        Ok(c) => c,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    Ok(Bech32PrivateKey::new(encrypted_private_key))
 }
 
 pub fn create_bip32_private_key_from_bech32(
     private_key_bech32: &str,
+    password: &str,
 ) -> Result<Bip32PrivateKey, String> {
-    let result = match Bip32PrivateKey::from_bech32(private_key_bech32) {
+    let private_key_bech32 = match password_decrypt(password, private_key_bech32.as_bytes()) {
+        Ok(c) => c,
+        Err(err) => return Err(err.to_string()),
+    };
+
+    let result = match Bip32PrivateKey::from_bech32(&private_key_bech32) {
         Ok(pk) => Ok(pk),
         Err(err) => Err(err.to_string()),
     };
@@ -152,4 +168,19 @@ pub fn create_payment_address(
     };
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_create_private_key() {
+        let mnemonic = String::from("save view trumpet burden asset become clap bachelor hero blouse rate myth usual rule catch phone february battle keep supply latin hub deputy unaware");
+        let password = String::from("123");
+
+        let private_key = create_private_key(&mnemonic, "", &password);
+
+        assert_eq!(private_key.is_ok(), true);
+    }
 }

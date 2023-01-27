@@ -2,19 +2,12 @@ package com.rncardanowallet;
 
 import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyInfo;
 import android.security.keystore.KeyProperties;
-import android.util.Log;
+
 import androidx.annotation.RequiresApi;
-import java.nio.charset.StandardCharsets;
+
 import java.security.Key;
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.KeyStore;
-import java.security.PublicKey;
-import java.security.Signature;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
@@ -23,7 +16,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
 // Credits: https://github.dev/lauhon/WalletPOC/blob/5e2edfbc798fc28d14696276e991fafb5c87754c/packages/react-native-secure-encryption-module/android/src/main/java/com/reactnativesecureencryptionmodule/service/EncryptionService.java#L18
-public class EncryptionService {
+public class CryptoService {
 
   private static final String TAG = "EncryptionService";
   private static final String IV_SEPARATOR = "]";

@@ -22,6 +22,6 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
-      <service android:name="com.rncardanowallet.MessengerService" />
+      <service android:name="com.rncardanowallet.MessengerService" android:isolatedProcess="true" />
     </application>
 </manifest>

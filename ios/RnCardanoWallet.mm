@@ -12,7 +12,7 @@
 @implementation RnCardanoWallet
 RCT_EXPORT_MODULE()
 
-- (void)privateKey:(NSString *)entropy password:(NSString *)password resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+- (void)privateKey:(NSString *)mnemonic salt:(NSString *)salt password:(NSString *)password resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
     NSString *uuid = [UUID generate];
     NSData *tag = [uuid dataUsingEncoding:NSUTF8StringEncoding];
@@ -26,11 +26,12 @@ RCT_EXPORT_MODULE()
         return reject(errorCode, errorMessage, nil);
     }
         
-    const char *entropyCString = [entropy UTF8String];
+    const char *mnemonicCString = [mnemonic UTF8String];
+    const char *saltCString = [mnemonic UTF8String];
     const char *passwordCString = [password UTF8String];
     
-    PrivateKeyData privateKey(entropyCString, passwordCString);
-    const char *privateKeyCString =privateKey.getValue();
+    PrivateKeyData privateKey(mnemonicCString, saltCString, passwordCString);
+    const char *privateKeyCString = privateKey.getValue();
 
     NSString *privateKeyFromCString = [NSString stringWithCString:privateKeyCString encoding:[NSString defaultCStringEncoding]];
     
@@ -43,7 +44,7 @@ RCT_EXPORT_MODULE()
     resolve([NSString stringWithFormat:@"%@:%@", uuid, result]);
 }
 
-- (void)publicAccountKey:(NSString *)base64Bip32PrivateKey resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
+- (void)publicAccountKey:(NSString *)base64Bip32PrivateKey password:(NSString *)password resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject
 {
     NSArray  *payload = [base64Bip32PrivateKey componentsSeparatedByString: @":"];
     
@@ -52,6 +53,8 @@ RCT_EXPORT_MODULE()
     
     NSString *cipherText = payload[1];
     NSData *data = [[NSData alloc] initWithBase64EncodedString:cipherText options:0];
+    
+    const char *passwordCString = [password UTF8String];
     
     NSError *error;
     
@@ -65,7 +68,7 @@ RCT_EXPORT_MODULE()
     
     const uint8_t *clearBip32PrivateKeyBytes = (uint8_t *)[clearBip32PrivateKey bytes];
         
-    PublicAccountKeyData publicAccountKey(clearBip32PrivateKeyBytes, clearBip32PrivateKey.length);
+    PublicAccountKeyData publicAccountKey(clearBip32PrivateKeyBytes, clearBip32PrivateKey.length, passwordCString);
     const char *publicAccountKeyCString = publicAccountKey.getValue();
 
     [clearBip32PrivateKey resetBytesInRange:NSMakeRange(0, [clearBip32PrivateKey length])];
@@ -141,14 +144,16 @@ bech32StakeVerificationKey:(NSString *)bech32StakeVerificationKey
 }
 
 - (void)transaction:(NSString *)base64Bip32PrivateKey
+           password:(NSString *)password
 paymentSigningKeyPathsJson:(NSString *)paymentSigningKeyPathsJson
 transactionBodyJson:(NSString *)transactionBodyJson
             resolve:(RCTPromiseResolveBlock)resolve
              reject:(RCTPromiseRejectBlock)reject
 {
+    const char *passwordCString = [password UTF8String];
     const char *paymentSigningKeyPathsJsonCString = [paymentSigningKeyPathsJson UTF8String];
     const char *transactionBodyJsonCString = [transactionBodyJson UTF8String];
-    
+        
     NSArray *payload = [base64Bip32PrivateKey componentsSeparatedByString: @":"];
     
     NSString *uuid = payload[0];
@@ -169,7 +174,7 @@ transactionBodyJson:(NSString *)transactionBodyJson
     
     const uint8_t *clearBip32PrivateKeyBytes = (uint8_t *)[clearBip32PrivateKey bytes];
     
-    TransactionData transaction(clearBip32PrivateKeyBytes, clearBip32PrivateKey.length, paymentSigningKeyPathsJsonCString, transactionBodyJsonCString);
+    TransactionData transaction(clearBip32PrivateKeyBytes, clearBip32PrivateKey.length, passwordCString, paymentSigningKeyPathsJsonCString, transactionBodyJsonCString);
     const char *transactionCString = transaction.getValue();
     
     [clearBip32PrivateKey resetBytesInRange:NSMakeRange(0, [clearBip32PrivateKey length])];
