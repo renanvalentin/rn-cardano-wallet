@@ -13,8 +13,8 @@
   "dependencies": {
     "assert": "^2.0.0",
     "events": "^3.3.0",
-    "react": "18.1.0",
-    "react-native": "0.70.6",
+    "react": "18.2.0",
+    "react-native": "0.72.4",
     "stream-browserify": "^3.0.0",
     "ts-custom-error": "^3.3.1"
   },

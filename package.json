@@ -67,8 +67,8 @@
     "jest": "^28.1.1",
     "pod-install": "^0.1.0",
     "prettier": "^2.0.5",
-    "react": "18.1.0",
-    "react-native": "0.70.6",
+    "react": "18.2.0",
+    "react-native": "0.72.4",
     "react-native-builder-bob": "^0.20.0",
     "release-it": "^15.0.0",
     "ts-custom-error": "^3.3.1",
@@ -78,10 +78,10 @@
     "@types/react": "17.0.21"
   },
   "peerDependencies": {
+    "@emurgo/cardano-serialization-lib-nodejs": "11.2.1",
     "react": "*",
     "react-native": "*",
-    "ts-custom-error": "3.3.1",
-    "@emurgo/cardano-serialization-lib-nodejs": "11.2.1"
+    "ts-custom-error": "3.3.1"
   },
   "engines": {
     "node": ">= 16.0.0"

@@ -21,6 +21,12 @@ Pod::Spec.new do |s|
   s.header_mappings_dir = "build/include"
 
   s.ios.vendored_frameworks = "build/rusty_cardano_wallet.xcframework"
+
+  s.script_phase = {
+    :name => "Build Rust Binary",
+    :script => 'bash "${PODS_TARGET_SRCROOT}/rust/bin/compile-ios.sh"',
+    :execution_position => :before_compile
+  }
   # s.osx.vendored_frameworks = "build/rusty_cardano_wallet.xcframework"
 
   # Don't install the dependencies when we run `pod install` in the old architecture.
