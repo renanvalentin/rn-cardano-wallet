@@ -34,10 +34,14 @@ mod password_encryption_parameter {
 ///
 pub fn password_encrypt(password: &str, data: &[u8]) -> Result<String, String> {
     let mut salt = [0u8; SALT_SIZE];
-    getrandom::getrandom(&mut salt);
+    if let Err(e) = getrandom::getrandom(&mut salt) {
+        return Err(format!("Cannot generate salt: {}", e));
+    }
 
     let mut nonce = [0u8; NONCE_SIZE];
-    getrandom::getrandom(&mut salt);
+    if let Err(e) = getrandom::getrandom(&mut nonce) {
+        return Err(format!("Cannot generate nonce: {}", e));
+    }
 
     let password = password.as_bytes();
     if salt.len() != password_encryption_parameter::SALT_SIZE {
@@ -118,5 +122,27 @@ pub fn password_decrypt(password: &str, encrypted_data: &[u8]) -> Result<String,
         }
     } else {
         Err(String::from("Cannot decrypt the data"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::password_encryption_parameter::{NONCE_END, NONCE_START};
+    use super::*;
+
+    #[test]
+    fn test_password_encrypt_uses_random_nonce() {
+        let encrypted = password_encrypt("123", b"secret").unwrap();
+        let encrypted = general_purpose::STANDARD.decode(encrypted).unwrap();
+
+        assert_ne!(&encrypted[NONCE_START..NONCE_END], &[0u8; NONCE_SIZE]);
+    }
+
+    #[test]
+    fn test_password_decrypt_roundtrip() {
+        let encrypted = password_encrypt("123", b"secret").unwrap();
+
+        assert_eq!(password_decrypt("123", encrypted.as_bytes()).unwrap(), "secret");
+        assert!(password_decrypt("wrong", encrypted.as_bytes()).is_err());
     }
 }
