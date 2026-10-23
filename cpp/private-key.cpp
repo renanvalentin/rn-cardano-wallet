@@ -3,9 +3,9 @@
 
 using namespace std;
 
-PrivateKeyData::PrivateKeyData(const char *entropy, const char *password)
+PrivateKeyData::PrivateKeyData(const char *mnemonic, const char *salt, const char *password)
 {
-    raw = private_key_create(entropy, password);
+    raw = private_key_create(mnemonic, salt, password);
     if (raw == nullptr)
     {
         throw "Invalid Private Key";

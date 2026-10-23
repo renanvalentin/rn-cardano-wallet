@@ -7,7 +7,7 @@
 class PublicAccountKeyData
 {
 public:
-    PublicAccountKeyData(const uint8_t *privateKeyBytes, size_t privateKeyBytesLen);
+    PublicAccountKeyData(const uint8_t *privateKeyBytes, size_t privateKeyBytesLen, const char *password);
     ~PublicAccountKeyData();
     const char *getValue();
 

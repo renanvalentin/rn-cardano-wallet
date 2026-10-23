@@ -2,8 +2,11 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
-  privateKey(entropy: string, password: string): Promise<string>;
-  publicAccountKey(base64Bip32PrivateKey: string): Promise<string>;
+  privateKey(mnemonic: string, salt: string, password: string): Promise<string>;
+  publicAccountKey(
+    base64Bip32PrivateKey: string,
+    password: string
+  ): Promise<string>;
   validateMnemonic(mnemonic: string): Promise<number>;
   bech32Address(
     bech32PublicAccountKey: string,
@@ -24,6 +27,7 @@ export interface Spec extends TurboModule {
   ): Promise<string>;
   transaction(
     base64Bip32PrivateKey: string,
+    password: string,
     paymentSigningKeyPathsJson: string,
     transactionBodyJson: string
   ): Promise<string>;

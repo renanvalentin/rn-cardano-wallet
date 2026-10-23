@@ -9,11 +9,13 @@ export class Transaction {
 
   public static async create(
     privateKey: PrivateKey,
+    password: string,
     paymentSigningKeyPaths: PaymentSigningKeyPaths,
     transactionBody: TransactionBody
   ) {
     const result = await RnCardanoWallet.transaction(
       privateKey.value,
+      password,
       JSON.stringify(paymentSigningKeyPaths.toJSON()),
       JSON.stringify(transactionBody.toJSON())
     );

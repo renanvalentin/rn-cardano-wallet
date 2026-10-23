@@ -7,7 +7,7 @@
 class PrivateKeyData
 {
 public:
-    PrivateKeyData(const char *entropy, const char *password);
+    PrivateKeyData(const char *mnemonic, const char *salt, const char *password);
     ~PrivateKeyData();
     char *getValue();
 

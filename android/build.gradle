@@ -9,11 +9,16 @@ buildscript {
   }
 }
 
+plugins {
+    id "org.mozilla.rust-android-gradle.rust-android" version "0.9.3"
+}
+
 def isNewArchitectureEnabled() {
   return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
 }
 
 apply plugin: "com.android.library"
+apply plugin: 'org.mozilla.rust-android-gradle.rust-android'
 
 if (isNewArchitectureEnabled()) {
   apply plugin: "com.facebook.react"
@@ -25,6 +30,14 @@ def getExtOrDefault(name) {
 
 def getExtOrIntegerDefault(name) {
   return rootProject.ext.has(name) ? rootProject.ext.get(name) : (project.properties["RnCardanoWallet_" + name]).toInteger()
+}
+
+
+
+tasks.whenTaskAdded { task ->
+    if ((task.name == 'javaPreCompileDebug' || task.name == 'javaPreCompileRelease')) {
+        task.dependsOn 'cargoBuild'
+    }
 }
 
 android {
@@ -72,6 +85,13 @@ android {
       }
     }
   }
+}
+
+cargo {
+    module  = "../rust"
+    libname = "rusty_cardano_wallet"
+    targets = ["arm64", "arm"]
+    prebuiltToolchains = true
 }
 
 repositories {

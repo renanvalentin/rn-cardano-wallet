@@ -10,11 +10,13 @@ FFI_TARGET=rusty_cardano_wallet
 BUILDVARIANT=debug
 RELFLAG=
 
-export ROOT_PATH="/Users/eliot/projects/hack/rn-cardano-wallet"
+export ROOT_PATH="/Users/$USER/projects/hack/rn-cardano-wallet"
 export CARGO_PROJECT_DIR="${ROOT_PATH}/rust"
 export MANIFEST_PATH="${CARGO_PROJECT_DIR}/Cargo.toml"
 # export TARGET_PATH="${PODS_TARGET_SRCROOT}/target"
 export TARGET_PATH="${ROOT_PATH}/build"
+export ANDROID_HOME=/Users/$USER/Library/Android/sdk
+export NDK_HOME=$ANDROID_HOME/ndk-bundle
 
 rm -rf ${TARGET_PATH}
 

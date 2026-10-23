@@ -44,10 +44,16 @@ pub struct Transaction {
 
 #[no_mangle]
 pub unsafe extern "C" fn private_key_create(
-    c_entropy: *const c_char,
+    c_mnemonic: *const c_char,
+    c_salt: *const c_char,
     c_password: *const c_char,
 ) -> *mut PrivateKey {
-    let entropy = match c_char_to_str(c_entropy) {
+    let mnemonic = match c_char_to_str(c_mnemonic) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let salt = match c_char_to_str(c_salt) {
         Ok(s) => s,
         Err(_) => return ptr::null_mut(),
     };
@@ -57,7 +63,7 @@ pub unsafe extern "C" fn private_key_create(
         Err(_) => return ptr::null_mut(),
     };
 
-    let bech32_private_key = match keygen::create_private_key(&entropy, &password) {
+    let bech32_private_key = match keygen::create_private_key(&mnemonic, &salt, &password) {
         Ok(pk) => pk,
         Err(_) => return ptr::null_mut(),
     };
@@ -93,6 +99,7 @@ pub unsafe extern "C" fn private_key_free(private_key_ptr: *mut PrivateKey) {
 pub unsafe extern "C" fn public_account_key_create(
     c_bip32_private_key_bytes: *const u8,
     c_bip32_private_key_len: size_t,
+    c_password: *const c_char,
 ) -> *mut PublicAccountKey {
     let byte_slice =
         slice::from_raw_parts(c_bip32_private_key_bytes, c_bip32_private_key_len as usize);
@@ -102,8 +109,13 @@ pub unsafe extern "C" fn public_account_key_create(
         Err(_) => return ptr::null_mut(),
     };
 
+    let password = match c_char_to_str(c_password) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
     let bip32_private_key =
-        match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str) {
+        match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str, &password) {
             Ok(pk) => pk,
             Err(_) => return ptr::null_mut(),
         };
@@ -356,6 +368,7 @@ pub unsafe extern "C" fn transaction_body_free(transaction_body_ptr: *mut Transa
 pub unsafe extern "C" fn transaction_create(
     c_bip32_private_key_bytes: *const u8,
     c_bip32_private_key_len: size_t,
+    c_password: *const c_char,
     c_payment_signing_key_paths_json: *const c_char,
     c_transaction_body_json: *const c_char,
 ) -> *mut Transaction {
@@ -363,6 +376,11 @@ pub unsafe extern "C" fn transaction_create(
         slice::from_raw_parts(c_bip32_private_key_bytes, c_bip32_private_key_len as usize);
 
     let bip32_private_key_str = match byte_slice_as_utf8(byte_slice) {
+        Ok(s) => s,
+        Err(_) => return ptr::null_mut(),
+    };
+
+    let password = match c_char_to_str(c_password) {
         Ok(s) => s,
         Err(_) => return ptr::null_mut(),
     };
@@ -378,7 +396,7 @@ pub unsafe extern "C" fn transaction_create(
     };
 
     let bip32_private_key =
-        match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str) {
+        match keygen::create_bip32_private_key_from_bech32(&bip32_private_key_str, &password) {
             Ok(pk) => pk,
             Err(_) => return ptr::null_mut(),
         };
