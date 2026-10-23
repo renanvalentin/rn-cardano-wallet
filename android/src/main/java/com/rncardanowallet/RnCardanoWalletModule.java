@@ -44,9 +44,9 @@ public class RnCardanoWalletModule extends NativeRnCardanoWalletSpec {
   private static native boolean nativeMnemonicValidation(String mnemonic);
   public static native String nativePublicAccountKey(String bip32PrivateKey, String password);
   public static native String nativeBech32Address(String bech32PublicKey, int changeIndex, int index);
-  public static native String nativePaymentAddress(String bech32PublicKey, int changeIndex, int index);
-  public static native String nativeTransactionBody(String configJson, String inputsJson, String outputJson, String bech32ChangeAddress, double ttl);
-  public static native String nativeTransaction(String bip32PrivateKey, String[] paymentSigningKeyPathsJson, String transactionBody);
+  public static native String nativePaymentAddress(byte network, String bech32PaymentVerificationKey, String bech32StakeVerificationKey);
+  public static native String nativeTransactionBody(String configJson, String inputsJson, String outputJson, String bech32ChangeAddress, long ttl);
+  public static native String nativeTransaction(String bip32PrivateKey, String password, String paymentSigningKeyPathsJson, String transactionBodyJson);
 
   private void sendMessage(Message message) throws RemoteException {
     RnCardanoWalletActivityMessenger messenger = (RnCardanoWalletActivityMessenger)mReactApplicationContext.getCurrentActivity();
@@ -62,7 +62,7 @@ public class RnCardanoWalletModule extends NativeRnCardanoWalletSpec {
         String wrapped = KeyWrap.wrap(privateKey);
         promise.resolve(wrapped);
       } catch (Exception e) {
-        promise.resolve(e);
+        promise.reject(e);
       }
     };
 
@@ -91,6 +91,7 @@ public class RnCardanoWalletModule extends NativeRnCardanoWalletSpec {
       unwrappedKey = KeyWrap.unwrap(base64Bip32PrivateKey);
     } catch (Exception e) {
       promise.reject(e);
+      return;
     }
 
     Bundle request = PublicAccountKeyRequest.create(unwrappedKey, password);
