@@ -6,6 +6,7 @@ import android.security.keystore.KeyProperties;
 
 import androidx.annotation.RequiresApi;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.security.KeyStore;
 import java.util.Base64;
@@ -13,7 +14,7 @@ import java.util.Base64;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 
 // Credits: https://github.dev/lauhon/WalletPOC/blob/5e2edfbc798fc28d14696276e991fafb5c87754c/packages/react-native-secure-encryption-module/android/src/main/java/com/reactnativesecureencryptionmodule/service/EncryptionService.java#L18
 public class CryptoService {
@@ -22,8 +23,10 @@ public class CryptoService {
   private static final String IV_SEPARATOR = "]";
 
   private static final String AES_MODE = KeyProperties.KEY_ALGORITHM_AES
-    + "/" + KeyProperties.BLOCK_MODE_CBC
-    + "/" + KeyProperties.ENCRYPTION_PADDING_PKCS7;
+    + "/" + KeyProperties.BLOCK_MODE_GCM
+    + "/" + KeyProperties.ENCRYPTION_PADDING_NONE;
+
+  private static final int GCM_TAG_LENGTH = 128;
 
 
   @RequiresApi(api = Build.VERSION_CODES.N)
@@ -43,8 +46,9 @@ public class CryptoService {
     try {
       KeyGenParameterSpec keyGenParameterSpec = new KeyGenParameterSpec.Builder(keyAlias,
         KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-        .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+        .setKeySize(256)
         .setRandomizedEncryptionRequired(true)
         .build();
 
@@ -81,7 +85,7 @@ public class CryptoService {
     Cipher cipher = Cipher.getInstance(AES_MODE);
     cipher.init(Cipher.ENCRYPT_MODE, key);
 
-    byte[] encryptedBytes = cipher.doFinal(message.getBytes());
+    byte[] encryptedBytes = cipher.doFinal(message.getBytes(StandardCharsets.UTF_8));
     byte[] iv = cipher.getIV();
 
     return Base64.getEncoder().encodeToString(encryptedBytes) + IV_SEPARATOR + Base64.getEncoder().encodeToString(iv);
@@ -94,13 +98,13 @@ public class CryptoService {
     byte[] input = Base64.getDecoder().decode(payload[0]);
     byte[] iv = Base64.getDecoder().decode(payload[1]);
 
-    IvParameterSpec ivSpec = new IvParameterSpec(iv);
+    GCMParameterSpec gcmSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
 
     Cipher cipher = Cipher.getInstance(AES_MODE);
-    cipher.init(Cipher.DECRYPT_MODE, key, ivSpec);
+    cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec);
 
     byte[] result = cipher.doFinal(input);
 
-    return new String(result);
+    return new String(result, StandardCharsets.UTF_8);
   }
 }
