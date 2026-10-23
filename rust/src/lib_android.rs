@@ -5,6 +5,19 @@ use jni::JNIEnv;
 use crate::keygen;
 use crate::{bip39, transactions};
 
+// Panicking here would abort the process, so a bad argument becomes a Java exception instead.
+fn get_string(env: &JNIEnv, value: JString) -> Option<String> {
+    match env.get_string(value) {
+        Ok(s) => Some(s.into()),
+        Err(_) => {
+            if !env.exception_check().unwrap_or(true) {
+                let _ = env.throw_new("java/lang/IllegalArgumentException", "invalid string");
+            }
+            None
+        }
+    }
+}
+
 #[no_mangle]
 pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePrivateKey(
     env: JNIEnv,
@@ -13,20 +26,20 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePriv
     salt: JString,
     password: JString,
 ) -> jobject {
-    let mnemonic: String = env
-        .get_string(mnemonic)
-        .expect("Couldn't get java string!")
-        .into();
+    let mnemonic = match get_string(&env, mnemonic) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let salt: String = env
-        .get_string(salt)
-        .expect("Couldn't get java string!")
-        .into();
+    let salt = match get_string(&env, salt) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let password: String = env
-        .get_string(password)
-        .expect("Couldn't get java string!")
-        .into();
+    let password = match get_string(&env, password) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
     let private_key = match keygen::create_private_key(&mnemonic, &salt, &password) {
         Ok(private_key) => private_key,
@@ -54,15 +67,15 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePubl
     bip32_private_key: JString,
     password: JString,
 ) -> jobject {
-    let bip32_private_key: String = env
-        .get_string(bip32_private_key)
-        .expect("Couldn't get java string!")
-        .into();
+    let bip32_private_key = match get_string(&env, bip32_private_key) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let password: String = env
-        .get_string(password)
-        .expect("Couldn't get java string!")
-        .into();
+    let password = match get_string(&env, password) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
     let bip32_private_key =
         match keygen::create_bip32_private_key_from_bech32(&bip32_private_key, &password) {
@@ -92,10 +105,10 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativeMnem
     _: JClass,
     mnemonic: JString,
 ) -> jboolean {
-    let mnemonic: String = env
-        .get_string(mnemonic)
-        .expect("Couldn't get java string!")
-        .into();
+    let mnemonic = match get_string(&env, mnemonic) {
+        Some(s) => s,
+        None => return 0,
+    };
 
     let result = bip39::validate(&mnemonic);
 
@@ -110,10 +123,10 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativeBech
     change_index: jint,
     index: jint,
 ) -> jstring {
-    let bech32_public_key: String = env
-        .get_string(bech32_public_key)
-        .expect("Couldn't get java string!")
-        .into();
+    let bech32_public_key = match get_string(&env, bech32_public_key) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
     let change_index = match u32::try_from(change_index) {
         Ok(result) => result,
@@ -168,15 +181,15 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativePaym
     bip32_payment_verification_key: JString,
     bip32_stake_verification_key: JString,
 ) -> jstring {
-    let bip32_payment_verification_key: String = env
-        .get_string(bip32_payment_verification_key)
-        .expect("Couldn't get java string!")
-        .into();
+    let bip32_payment_verification_key = match get_string(&env, bip32_payment_verification_key) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let bip32_stake_verification_key: String = env
-        .get_string(bip32_stake_verification_key)
-        .expect("Couldn't get java string!")
-        .into();
+    let bip32_stake_verification_key = match get_string(&env, bip32_stake_verification_key) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
     let network = match u8::try_from(network) {
         Ok(result) => result,
@@ -237,25 +250,25 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativeTran
     bech32_change_address: JString,
     ttl: jlong,
 ) -> jstring {
-    let config_json: String = env
-        .get_string(config_json)
-        .expect("Couldn't get java string!")
-        .into();
+    let config_json = match get_string(&env, config_json) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let inputs_json: String = env
-        .get_string(inputs_json)
-        .expect("Couldn't get java string!")
-        .into();
+    let inputs_json = match get_string(&env, inputs_json) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let output_json: String = env
-        .get_string(output_json)
-        .expect("Couldn't get java string!")
-        .into();
+    let output_json = match get_string(&env, output_json) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let bech32_change_address: String = env
-        .get_string(bech32_change_address)
-        .expect("Couldn't get java string!")
-        .into();
+    let bech32_change_address = match get_string(&env, bech32_change_address) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
     let ttl = match u64::try_from(ttl) {
         Ok(result) => result,
@@ -307,25 +320,25 @@ pub extern "system" fn Java_com_rncardanowallet_RnCardanoWalletModule_nativeTran
     payment_signing_key_paths_json: JString,
     transaction_body_json: JString,
 ) -> jstring {
-    let private_key: String = env
-        .get_string(private_key)
-        .expect("Couldn't get java string!")
-        .into();
+    let private_key = match get_string(&env, private_key) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let password: String = env
-        .get_string(password)
-        .expect("Couldn't get java string!")
-        .into();
+    let password = match get_string(&env, password) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let payment_signing_key_paths_json: String = env
-        .get_string(payment_signing_key_paths_json)
-        .expect("Couldn't get java string!")
-        .into();
+    let payment_signing_key_paths_json = match get_string(&env, payment_signing_key_paths_json) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
-    let transaction_body_json: String = env
-        .get_string(transaction_body_json)
-        .expect("Couldn't get java string!")
-        .into();
+    let transaction_body_json = match get_string(&env, transaction_body_json) {
+        Some(s) => s,
+        None => return ::std::ptr::null_mut() as jstring,
+    };
 
     let bip32_private_key =
         match keygen::create_bip32_private_key_from_bech32(&private_key, &password) {
