@@ -27,7 +27,7 @@ RCT_EXPORT_MODULE()
     }
         
     const char *mnemonicCString = [mnemonic UTF8String];
-    const char *saltCString = [mnemonic UTF8String];
+    const char *saltCString = [salt UTF8String];
     const char *passwordCString = [password UTF8String];
     
     PrivateKeyData privateKey(mnemonicCString, saltCString, passwordCString);
