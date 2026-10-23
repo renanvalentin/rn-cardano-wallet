@@ -71,10 +71,12 @@ public class MessengerService extends Service {
 
     final String privateKey = RnCardanoWalletModule.nativePrivateKey(mnemonic, salt, password);
 
-    request.putString("privateKey", privateKey);
+    // Fresh bundle so the mnemonic and password don't travel back over IPC.
+    Bundle reply = new Bundle();
+    reply.putString("privateKey", privateKey);
 
     Message message = new Message();
-    message.setData(request);
+    message.setData(reply);
 
     replyMessenger.send(message);
   }
@@ -86,10 +88,11 @@ public class MessengerService extends Service {
 
     final String publicAccountKey = RnCardanoWalletModule.nativePublicAccountKey(base64Bip32PrivateKey, password);
 
-    request.putString("publicAccountKey", publicAccountKey);
+    Bundle reply = new Bundle();
+    reply.putString("publicAccountKey", publicAccountKey);
 
     Message message = new Message();
-    message.setData(request);
+    message.setData(reply);
 
     replyMessenger.send(message);
   }
